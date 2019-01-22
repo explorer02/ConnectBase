@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:background="@color/colorBlack"
+    android:layout_height="match_parent"
+    tools:context=".ZoomImageViewActivity">
+
+    <com.jsibbold.zoomage.ZoomageView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        app:zoomage_restrictBounds="false"
+        app:zoomage_doubleTapToZoom="true"
+        app:zoomage_animateOnReset="true"
+        app:zoomage_maxScale="8"
+        android:id="@+id/iv_zoomImage_profilePic"
+        app:zoomage_minScale="0.6"
+        app:zoomage_zoomable="true"
+        app:zoomage_translatable="true"
+        app:zoomage_autoResetMode="UNDER"
+        app:zoomage_doubleTapToZoomScaleFactor="2"
+        app:zoomage_autoCenter="true"
+        android:src="@drawable/avatar"/>
+</RelativeLayout>

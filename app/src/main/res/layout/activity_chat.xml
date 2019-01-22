@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:background="#4DC79AC4"
+    android:layout_height="match_parent"
+    tools:context=".ChatActivity">
+
+    <include
+        layout="@layout/layout_toolbar"
+        android:id="@+id/toolbar_chat" />
+
+    <android.support.v7.widget.RecyclerView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_above="@+id/linearLayout_chatbox"
+        android:layout_marginBottom="5dp"
+        android:id="@+id/list_chat"
+        android:layout_below="@+id/toolbar_chat"
+        android:layout_marginTop="0dp" />
+
+    <LinearLayout
+        android:layout_alignParentBottom="true"
+        android:orientation="horizontal"
+        android:layout_marginBottom="10dp"
+        android:layout_width="match_parent"
+        android:id="@+id/linearLayout_chatbox"
+        android:layout_height="wrap_content">
+
+        <ImageView
+            android:id="@+id/iv_chat_attachment"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="40dp"
+            android:layout_marginStart="10dp"
+            android:layout_gravity="bottom"
+            android:onClick="addAttachment"
+            android:src="@drawable/ic_attachment" />
+
+        <EditText
+            android:id="@+id/et_chat_message"
+            android:layout_width="0dp"
+            android:layout_weight="8"
+            android:layout_height="wrap_content"
+            android:paddingLeft="15dp"
+            android:scrollbarSize="2dp"
+            android:layout_marginStart="5dp"
+            android:paddingRight="15dp"
+            android:scrollbars="vertical"
+            android:layout_gravity="fill_vertical"
+            android:textSize="18sp"
+            android:maxHeight="120dp"
+            android:hint="Start Typing here...."
+            android:paddingTop="10dp"
+            android:paddingBottom="10dp"
+            android:background="@drawable/layout_edittext_background" />
+
+
+        <ImageView
+            android:id="@+id/iv_chat_send"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="40dp"
+            android:layout_marginStart="5dp"
+            android:layout_gravity="bottom"
+            android:onClick="sendMessage"
+            android:layout_marginEnd="10dp"
+            android:src="@drawable/ic_send" />
+
+
+    </LinearLayout>
+
+
+</RelativeLayout>

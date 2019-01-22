@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:id="@+id/linLay_lRCM"
+    android:layout_height="wrap_content"
+    android:padding="10dp"
+    android:orientation="vertical">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/tv_lRCM_name"
+        android:text="Name"
+        android:textColor="@color/colorPrimary" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:orientation="horizontal"
+        android:padding="10dp"
+        android:background="@drawable/layout_chat_background_message_orange"
+        android:layout_height="wrap_content">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_weight="10"
+            android:id="@+id/tv_lRCM_message"
+            android:layout_height="wrap_content"
+            android:maxWidth="200dp"
+            android:text="messages..........."
+            android:textColor="@color/colorWhite" />
+
+        <ImageView
+            android:layout_width="24dp"
+            android:id="@+id/iv_LRCM_more"
+            android:src="@drawable/ic_more"
+            android:layout_height="24dp" />
+    </LinearLayout>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:id="@+id/tv_lRCM_time"
+        android:paddingRight="10dp"
+        android:layout_height="wrap_content"
+        android:text="Time"
+        android:gravity="right"
+        android:textColor="@color/colorPrimary" />
+</LinearLayout>

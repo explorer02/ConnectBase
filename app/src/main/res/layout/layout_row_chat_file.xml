@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:id="@+id/linLay_lRCF"
+    android:padding="10dp">
+
+    <TextView
+        android:id="@+id/tv_lRCF_name"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Name"
+        android:textColor="@color/colorPrimary" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/layout_chat_background_message_orange"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/tv_lRCF_file"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:maxWidth="200dp"
+            android:padding="5dp"
+            android:text="File.............."
+            android:textColor="@color/colorWhite" />
+
+        <ImageView
+            android:id="@+id/iv_lRCF_download"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_marginStart="10dp"
+            android:layout_marginTop="2dp"
+            android:layout_marginEnd="10dp"
+            android:src="@drawable/ic_download" />
+
+        <ImageView
+            android:id="@+id/iv_lRCF_more"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@drawable/ic_more" />
+
+    </LinearLayout>
+
+    <ProgressBar
+        android:id="@+id/pb_lRCF_progress"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="match_parent"
+        android:layout_height="3dp"
+        android:progress="20"
+        android:progressBackgroundTint="@color/colorAccent" />
+
+    <TextView
+        android:id="@+id/tv_lRCF_time"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="right"
+        android:paddingRight="10dp"
+        android:text="Time"
+        android:textColor="@color/colorPrimary" />
+</LinearLayout>

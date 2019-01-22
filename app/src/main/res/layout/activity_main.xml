@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".MainActivity">
+
+    <android.support.design.widget.AppBarLayout
+        android:layout_width="match_parent"
+        android:id="@+id/appbarLayout_main"
+        android:layout_height="wrap_content">
+
+        <include layout="@layout/layout_toolbar"
+            android:id="@+id/toolbar_main"/>
+
+        <android.support.design.widget.TabLayout
+            android:layout_width="match_parent"
+            android:id="@+id/tablayout_main"
+            app:tabMode="scrollable"
+            app:tabMinWidth="110dp"
+            app:tabRippleColor="#ccc"
+            app:tabIndicatorColor="#fff"
+            app:tabIndicatorHeight="2.5dp"
+            android:background="@color/colorPrimary"
+            app:tabTextColor="@color/colorWhite"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="0dp"/>
+
+    </android.support.design.widget.AppBarLayout>
+
+    <android.support.v4.view.ViewPager
+        android:id="@+id/viewPager_main"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/appbarLayout_main"
+        android:layout_marginTop="0dp"/>
+
+</RelativeLayout>

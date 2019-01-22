@@ -1,0 +1,55 @@
+{
+  "project_info": {
+    "project_number": "819135238487",
+    "firebase_url": "https://connectbase-b4f78.firebaseio.com",
+    "project_id": "connectbase-b4f78",
+    "storage_bucket": "connectbase-b4f78.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:819135238487:android:7e3546558d30b706",
+        "android_client_info": {
+          "package_name": "com.example.connectbase"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "819135238487-btefkvnrchqniajefg791gpk29aqg70b.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.connectbase",
+            "certificate_hash": "fc2608d3ba41b8bc39c3ed90285c1e54f73a6a57"
+          }
+        },
+        {
+          "client_id": "819135238487-23ehtskrps3t42bdlg3cf62ertp77v5l.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCDYFXM-MVw9-zZNxTxAVeLVz1TnAJWg-8"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 2,
+          "other_platform_oauth_client": [
+            {
+              "client_id": "819135238487-23ehtskrps3t42bdlg3cf62ertp77v5l.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

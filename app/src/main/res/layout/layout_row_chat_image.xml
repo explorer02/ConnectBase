@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:id="@+id/linLay_lRCI"
+    android:padding="10dp">
+
+    <TextView
+        android:id="@+id/tv_lRCI_message"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Name"
+        android:textColor="@color/colorPrimary" />
+
+    <RelativeLayout
+        android:layout_width="150dp"
+        android:layout_height="150dp">
+
+        <ImageView
+            android:id="@+id/iv_lRCI_image"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:src="@color/colorPrimary" />
+
+        <ImageView
+            android:id="@+id/iv_lRCI_more"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_alignParentEnd="true"
+            android:src="@drawable/ic_more" />
+
+        <ImageView
+            android:id="@+id/iv_lRCI_download"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginStart="50dp"
+            android:layout_marginTop="50dp"
+            android:src="@drawable/ic_download" />
+    </RelativeLayout>
+
+    <ProgressBar
+        android:id="@+id/pb_lRCI_progress"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="match_parent"
+        android:layout_height="3dp"
+        android:progress="20"
+        android:progressBackgroundTint="@color/colorAccent" />
+
+    <TextView
+        android:id="@+id/tv_lRCI_desc"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingRight="10dp"
+        android:text="Description"
+        android:textColor="@color/colorPrimary" />
+
+    <TextView
+        android:id="@+id/tv_lRCI_time"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="right"
+        android:paddingRight="10dp"
+        android:text="Time"
+        android:textColor="@color/colorPrimary" />
+</LinearLayout>
