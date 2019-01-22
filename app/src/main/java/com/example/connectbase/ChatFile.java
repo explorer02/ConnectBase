@@ -2,7 +2,8 @@ package com.example.connectbase;
 
 public class ChatFile {
 
-    private String sender, messageType, description, fileUrl, time, status, filename;
+    private String sender, messageType, description, fileUrl, status, filename, time;
+
 
     public ChatFile(String sender, String messageType, String description, String file, String time, String status, String filename) {
         this.sender = sender;

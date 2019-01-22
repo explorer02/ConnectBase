@@ -2,7 +2,8 @@ package com.example.connectbase;
 
 public class ChatImage {
 
-    private String sender, messageType, description, imageName, imageUrl, thumbImage, time, status;
+    private String sender, messageType, description, imageName, imageUrl, thumbImage, status,time;
+
 
     public ChatImage(String sender, String messageType, String description, String imageName, String imageUrl, String thumbImage, String time, String status) {
         this.sender = sender;
