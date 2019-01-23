@@ -2,10 +2,10 @@ package com.example.connectbase;
 
 public class ChatImage {
 
-    private String sender, messageType, description, imageName, imageUrl, thumbImage, status,time;
+    private String sender, messageType, description, imageName, imageUrl, thumbImage, status, time, seen;
 
 
-    public ChatImage(String sender, String messageType, String description, String imageName, String imageUrl, String thumbImage, String time, String status) {
+    public ChatImage(String sender, String messageType, String description, String imageName, String imageUrl, String thumbImage, String time, String status, String seen) {
         this.sender = sender;
         this.messageType = messageType;
         this.description = description;
@@ -14,6 +14,7 @@ public class ChatImage {
         this.thumbImage = thumbImage;
         this.time = time;
         this.status = status;
+        this.seen = seen;
     }
 
     public String getSender() {
@@ -78,5 +79,13 @@ public class ChatImage {
 
     public void setImageUrl(String imageUrl) {
         this.imageUrl = imageUrl;
+    }
+
+    public String getSeen() {
+        return seen;
+    }
+
+    public void setSeen(String seen) {
+        this.seen = seen;
     }
 }

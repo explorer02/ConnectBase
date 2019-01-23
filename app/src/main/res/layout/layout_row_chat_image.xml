@@ -37,6 +37,16 @@
             android:layout_marginStart="50dp"
             android:layout_marginTop="50dp"
             android:src="@drawable/ic_download" />
+
+        <ImageView
+            android:id="@+id/iv_lRCI_cancel"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginStart="50dp"
+            android:layout_marginTop="50dp"
+            android:src="@drawable/ic_cross"
+            android:visibility="gone" />
+
     </RelativeLayout>
 
     <ProgressBar
@@ -63,4 +73,5 @@
         android:paddingRight="10dp"
         android:text="Time"
         android:textColor="@color/colorPrimary" />
+
 </LinearLayout>

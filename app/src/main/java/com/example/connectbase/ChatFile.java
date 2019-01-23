@@ -2,10 +2,10 @@ package com.example.connectbase;
 
 public class ChatFile {
 
-    private String sender, messageType, description, fileUrl, status, filename, time;
+    private String sender, messageType, description, fileUrl, status, filename, time, seen;
 
 
-    public ChatFile(String sender, String messageType, String description, String file, String time, String status, String filename) {
+    public ChatFile(String sender, String messageType, String description, String file, String time, String status, String filename, String seen) {
         this.sender = sender;
         this.messageType = messageType;
         this.description = description;
@@ -13,6 +13,7 @@ public class ChatFile {
         this.time = time;
         this.status = status;
         this.filename = filename;
+        this.seen = seen;
     }
 
     public String getSender() {
@@ -69,5 +70,13 @@ public class ChatFile {
 
     public void setFilename(String filename) {
         this.filename = filename;
+    }
+
+    public String getSeen() {
+        return seen;
+    }
+
+    public void setSeen(String seen) {
+        this.seen = seen;
     }
 }

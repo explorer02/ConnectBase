@@ -12,6 +12,10 @@
         <item name="windowActionBar">false</item>
     </style>
 
+    <style name="toolbar_text" parent="TextAppearance.AppCompat.Body1">
+        <item name="android:textSize">20sp</item>
+        <item name="android:textColor">@color/colorWhite</item>
+    </style>
 
 
 </resources>
