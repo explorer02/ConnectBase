@@ -247,6 +247,7 @@ public class ChatActivity extends AppCompatActivity {
 
                 break;
             case REQUEST_CODE_GALLERY_BATCH:
+                //TODO multiple uri from gallery
                 break;
         }
     }
@@ -342,7 +343,8 @@ public class ChatActivity extends AppCompatActivity {
                             thumbImageReference.getDownloadUrl().addOnSuccessListener(uri1 -> {
                                 hashMap.put("thumbImage", uri1.toString());
                                 mChatReference.child(chatId).child(pushKey).setValue(hashMap);
-                                file.delete();
+                                if (code == REQUEST_CODE_CAMERA)
+                                    file.delete();
                                 thumbFile.delete();
                                 sendFileToSentFolder(imageFile);
 
@@ -439,7 +441,7 @@ public class ChatActivity extends AppCompatActivity {
     private void batchImageModeGallery() {
         Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.INTERNAL_CONTENT_URI);
         intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
-        startActivityForResult(Intent.createChooser(intent, "Select Images"), REQUEST_CODE_GALLERY_SINGLE);
+        startActivityForResult(Intent.createChooser(intent, "Select Images"), REQUEST_CODE_GALLERY_BATCH);
 
     }
 
