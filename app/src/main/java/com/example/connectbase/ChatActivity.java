@@ -1,6 +1,7 @@
 package com.example.connectbase;
 
 import android.Manifest;
+import android.content.ClipData;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
@@ -49,6 +50,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 
@@ -60,12 +62,11 @@ public class ChatActivity extends AppCompatActivity {
     Users user;
     String id, currentId;
     DatabaseReference mChatIdReference, mChatReference;
-    final int REQUEST_CODE_GALLERY_SINGLE = 1031;
+    final int REQUEST_CODE_GALLERY = 1031;
     EditText etMessage;
     String chatId=null;
     final int REQUEST_CODE_CAMERA = 101;
     final int REQUEST_CODE_FILE = 102;
-    final int REQUEST_CODE_GALLERY_BATCH = 1032;
     StorageReference mChatImageReference;
     final int REQUEST_CODE_STORAGE = 104;
     Uri cameraUri, fileUri, galleryUri;
@@ -191,13 +192,13 @@ public class ChatActivity extends AppCompatActivity {
             dialog.hide();
         });
 
-        ivGallery.setOnClickListener(v -> new AlertDialog.Builder(ChatActivity.this)
-                .setItems(new String[]{"Single Image Mode", "Batch Image Mode"}, (dialog1, which) -> {
-                    if (which == 0) singleImageModeGallery();
-                    else batchImageModeGallery();
-                    dialog.hide();
-                })
-                .show());
+        ivGallery.setOnClickListener(v -> {
+            Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.INTERNAL_CONTENT_URI);
+            //Intent intent=new Intent(Intent.ACTION_GET_CONTENT);
+            //intent.setType("image/*");
+            intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
+            startActivityForResult(Intent.createChooser(intent, "Select Images"), REQUEST_CODE_GALLERY);
+        });
 
 
     }
@@ -238,16 +239,32 @@ public class ChatActivity extends AppCompatActivity {
                     Snackbar.make(findViewById(R.id.list_chat), "Oops, Action Cancelled!!", Snackbar.LENGTH_SHORT).show();
                 }
                 break;
-            case REQUEST_CODE_GALLERY_SINGLE:
-                if (resultCode == RESULT_OK) {
-                    showAddAttachmentDescriptionToImage(data.getData(), REQUEST_CODE_GALLERY_SINGLE);
+
+            case REQUEST_CODE_GALLERY:
+                if (resultCode == RESULT_OK && data != null) {
+                    if (data.getData() != null) {
+                        startActivity(new Intent(this, ImageEditingActivity.class).putExtra("path", data.getData().toString()));
+                        //showAddAttachmentDescriptionToImage(data.getData(), REQUEST_CODE_GALLERY);
+                    } else if (data.getClipData() != null) {
+
+                        ClipData clipData = data.getClipData();
+                        ArrayList<Uri> uriList = new ArrayList<>();
+                        for (int i = 0; i < clipData.getItemCount(); i++) {
+                            ClipData.Item item = clipData.getItemAt(i);
+                            uriList.add(item.getUri());
+                        }
+
+                        if (uriList.size() == 1) {
+                            startActivity(new Intent(this, ImageEditingActivity.class).putExtra("path", uriList.get(0).toString()));
+                        }
+                        for (int i = 0; i < uriList.size(); i++)
+                            showAddAttachmentDescriptionToImage(uriList.get(i), REQUEST_CODE_GALLERY);
+
+
+                    }
                 } else if (resultCode == RESULT_CANCELED) {
                     Snackbar.make(findViewById(R.id.list_chat), "Oops, Action Cancelled!!", Snackbar.LENGTH_SHORT).show();
                 }
-
-                break;
-            case REQUEST_CODE_GALLERY_BATCH:
-                //TODO multiple uri from gallery
                 break;
         }
     }
@@ -306,7 +323,7 @@ public class ChatActivity extends AppCompatActivity {
         try {
 
             int q = 80;
-            if (code == REQUEST_CODE_GALLERY_SINGLE)
+            if (code == REQUEST_CODE_GALLERY)
                 q = 40;
 
             imageFile = compressImage(file, 700, 700, q, true);
@@ -414,13 +431,6 @@ public class ChatActivity extends AppCompatActivity {
                 .compressToFile(file);
     }
 
-    private void openUserProfile() {
-
-        Intent intent = new Intent(this, ViewUserProfile.class);
-        intent.putExtra("user", user);
-        intent.putExtra("id", id);
-        startActivity(intent);
-    }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -438,18 +448,13 @@ public class ChatActivity extends AppCompatActivity {
         return true;
     }
 
-    private void batchImageModeGallery() {
-        Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.INTERNAL_CONTENT_URI);
-        intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
-        startActivityForResult(Intent.createChooser(intent, "Select Images"), REQUEST_CODE_GALLERY_BATCH);
+    private void openUserProfile() {
 
-    }
-
-    private void singleImageModeGallery() {
-
-        Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.INTERNAL_CONTENT_URI);
-        startActivityForResult(Intent.createChooser(intent, "Select Image"), REQUEST_CODE_GALLERY_SINGLE);
-
+        Intent intent = new Intent(this, ViewUserProfile.class);
+        intent.putExtra("user", user);
+        intent.putExtra("id", id);
+        startActivity(intent);
     }
 
 }
+//TODO use result of ImageEditing Activity

@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/colorBlack"
+    tools:context=".ImageEditingActivity">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentEnd="true"
+        android:layout_marginTop="10dp"
+        android:layout_marginEnd="10dp"
+        android:onClick="doneEditing"
+        android:text="Done"
+        android:textColor="@color/colorWhite"
+        android:textSize="20sp" />
+
+    <ja.burhanrashid52.photoeditor.PhotoEditorView
+        android:id="@+id/photoEditor_ImageEditing"
+        android:layout_width="match_parent"
+        android:layout_height="400dp"
+        android:layout_marginTop="50dp"
+        app:photo_src="@color/colorPrimary" />
+
+    <LinearLayout
+        android:id="@+id/linearLayout_editTools"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_marginBottom="100dp"
+        android:orientation="horizontal">
+
+        <ImageView
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_weight="1"
+            android:onClick="editingToolClick"
+            android:src="@drawable/ic_brush"
+            android:tag="brush" />
+
+        <ImageView
+            android:id="@+id/iv_imageEdit_eraser"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_weight="1"
+            android:onClick="editingToolClick"
+            android:src="@drawable/ic_erase"
+            android:tag="eraser" />
+
+        <ImageView
+            android:id="@+id/iv_imageEdit_text_box"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_weight="1"
+            android:onClick="editingToolClick"
+            android:src="@drawable/ic_text_field"
+            android:tag="text" />
+
+        <ImageView
+            android:id="@+id/iv_imageEdit_undo"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_weight="1"
+            android:onClick="editingToolClick"
+            android:src="@drawable/ic_undo"
+            android:tag="undo" />
+
+        <ImageView
+            android:id="@+id/iv_imageEdit_redo"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_weight="1"
+            android:onClick="editingToolClick"
+            android:src="@drawable/ic_redo"
+            android:tag="redo" />
+
+    </LinearLayout>
+
+
+    <EditText
+        android:id="@+id/et_imageEdit_desc"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_marginBottom="40dp"
+        android:hint="Add Description..."
+        android:inputType="textMultiLine"
+        android:paddingLeft="10dp"
+        android:paddingRight="10dp"
+        android:textColor="@color/colorWhite"
+        android:textColorHint="@color/colorWhite" />
+
+
+</RelativeLayout>
