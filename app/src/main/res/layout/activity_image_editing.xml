@@ -20,7 +20,7 @@
 
     <ja.burhanrashid52.photoeditor.PhotoEditorView
         android:id="@+id/photoEditor_ImageEditing"
-        android:layout_width="match_parent"
+        android:layout_width="400dp"
         android:layout_height="400dp"
         android:layout_marginTop="50dp"
         app:photo_src="@color/colorPrimary" />

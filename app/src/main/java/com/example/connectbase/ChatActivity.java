@@ -15,7 +15,6 @@ import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.design.widget.BottomSheetDialog;
 import android.support.design.widget.Snackbar;
-import android.support.design.widget.TextInputLayout;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.content.FileProvider;
@@ -47,7 +46,6 @@ import com.squareup.picasso.Picasso;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
@@ -65,10 +63,12 @@ public class ChatActivity extends AppCompatActivity {
     final int REQUEST_CODE_GALLERY = 1031;
     EditText etMessage;
     String chatId=null;
-    final int REQUEST_CODE_CAMERA = 101;
-    final int REQUEST_CODE_FILE = 102;
+    static final int REQUEST_CODE_CAMERA = 101;
+    static final int REQUEST_CODE_FILE = 102;
     StorageReference mChatImageReference;
-    final int REQUEST_CODE_STORAGE = 104;
+    static final int REQUEST_CODE_STORAGE = 104;
+    static final int REQUEST_CODE_IMAGE_EDITING = 105;
+    static final int REQUEST_CODE_VIEW_IMAGES = 106;
     Uri cameraUri, fileUri, galleryUri;
 
     @Override
@@ -181,10 +181,8 @@ public class ChatActivity extends AppCompatActivity {
             File parentFile = new File(Environment.getExternalStorageDirectory() + "/ConnectBase/temp");
             parentFile.mkdirs();
             File file = new File(parentFile, "IMG_" + new Date().getTime() + ".jpg");
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N)
-                cameraUri = FileProvider.getUriForFile(ChatActivity.this, getPackageName() + ".provider", file);
-            else
-                cameraUri = Uri.fromFile(file);
+
+            cameraUri = getUriFromFile(file);
 
             intent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(file));
             intent.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION | Intent.FLAG_GRANT_READ_URI_PERMISSION);
@@ -234,7 +232,10 @@ public class ChatActivity extends AppCompatActivity {
         switch (requestCode) {
             case REQUEST_CODE_CAMERA:
                 if (resultCode == RESULT_OK) {
-                    showAddAttachmentDescriptionToImage(cameraUri, REQUEST_CODE_CAMERA);
+
+                    startActivityForResult(new Intent(this, ImageEditingActivity.class).putExtra("path", cameraUri.toString()).putExtra("imageCode", REQUEST_CODE_CAMERA), REQUEST_CODE_IMAGE_EDITING);
+
+                    //showAddAttachmentDescriptionToImage(cameraUri, REQUEST_CODE_CAMERA);
                 } else if (resultCode == RESULT_CANCELED) {
                     Snackbar.make(findViewById(R.id.list_chat), "Oops, Action Cancelled!!", Snackbar.LENGTH_SHORT).show();
                 }
@@ -243,8 +244,8 @@ public class ChatActivity extends AppCompatActivity {
             case REQUEST_CODE_GALLERY:
                 if (resultCode == RESULT_OK && data != null) {
                     if (data.getData() != null) {
-                        startActivity(new Intent(this, ImageEditingActivity.class).putExtra("path", data.getData().toString()));
-                        //showAddAttachmentDescriptionToImage(data.getData(), REQUEST_CODE_GALLERY);
+                        startActivityForResult(new Intent(this, ImageEditingActivity.class).putExtra("path", data.getData()).putExtra("imageCode", REQUEST_CODE_GALLERY), REQUEST_CODE_IMAGE_EDITING);
+
                     } else if (data.getClipData() != null) {
 
                         ClipData clipData = data.getClipData();
@@ -255,10 +256,20 @@ public class ChatActivity extends AppCompatActivity {
                         }
 
                         if (uriList.size() == 1) {
-                            startActivity(new Intent(this, ImageEditingActivity.class).putExtra("path", uriList.get(0).toString()));
+                            startActivityForResult(new Intent(this, ImageEditingActivity.class).putExtra("path", uriList.get(0).toString()).putExtra("code", REQUEST_CODE_GALLERY), REQUEST_CODE_IMAGE_EDITING);
+                        } else {
+                            //   for (int i = 0; i < uriList.size(); i++)
+                            //      showAddAttachmentDescriptionToImage(uriList.get(i), REQUEST_CODE_GALLERY);
+                            Bundle bundle = new Bundle();
+                            ArrayList<String> list = new ArrayList<>();
+                            for (int i = 0; i < Math.min(10, uriList.size()); i++)
+                                list.add(uriList.get(i).toString());
+                            bundle.putStringArrayList("uriList", list);
+                            if (uriList.size() > 10) {
+                                Snackbar.make(findViewById(R.id.list_chat), "Loading first 10 images..", Snackbar.LENGTH_SHORT).show();
+                            }
+                            startActivityForResult(new Intent(this, ViewImagesActivity.class).putExtra("bundle", bundle), REQUEST_CODE_VIEW_IMAGES);
                         }
-                        for (int i = 0; i < uriList.size(); i++)
-                            showAddAttachmentDescriptionToImage(uriList.get(i), REQUEST_CODE_GALLERY);
 
 
                     }
@@ -266,31 +277,43 @@ public class ChatActivity extends AppCompatActivity {
                     Snackbar.make(findViewById(R.id.list_chat), "Oops, Action Cancelled!!", Snackbar.LENGTH_SHORT).show();
                 }
                 break;
+            case REQUEST_CODE_IMAGE_EDITING:
+                if (resultCode == RESULT_OK) {
+
+                    Bundle bundle = data.getBundleExtra("uriBundle");
+                    sendImageMessage(bundle.getString("desc"), Uri.parse(bundle.getString("path")));
+
+                } else if (resultCode == RESULT_CANCELED) {
+                    Snackbar.make(findViewById(R.id.list_chat), "Oops, Action Cancelled!!", Snackbar.LENGTH_SHORT).show();
+                }
+
+                break;
         }
     }
 
-    private void showAddAttachmentDescriptionToImage(Uri uri, int requestCode) {
+    /*
+        private void showAddAttachmentDescriptionToImage(Uri uri, int requestCode) {
 
-        AlertDialog.Builder dialog = new AlertDialog.Builder(this);
-        View view = getLayoutInflater().inflate(R.layout.layout_add_attachment_description, null, false);
-        dialog.setView(view);
-        ImageView ivPic = view.findViewById(R.id.iv_lAAD_pic);
-        ivPic.setImageURI(uri);
-        TextInputLayout tilDesc = view.findViewById(R.id.til_lAAD_desc);
+            AlertDialog.Builder dialog = new AlertDialog.Builder(this);
+            View view = getLayoutInflater().inflate(R.layout.layout_add_attachment_description, null, false);
+            dialog.setView(view);
+            ImageView ivPic = view.findViewById(R.id.iv_lAAD_pic);
+            ivPic.setImageURI(uri);
+            TextInputLayout tilDesc = view.findViewById(R.id.til_lAAD_desc);
 
-        dialog.setCancelable(false);
+            dialog.setCancelable(false);
 
-        dialog.setNegativeButton("Cancel", (dialog1, which) -> {
-            if (requestCode == REQUEST_CODE_CAMERA)
-                new File(getRealPathFromUri(uri)).delete();
-        });
-        dialog.setPositiveButton("Send", (dialog1, which) -> sendImageMessage(tilDesc.getEditText().getText().toString().trim(), uri, requestCode));
+            dialog.setNegativeButton("Cancel", (dialog1, which) -> {
+                if (requestCode == REQUEST_CODE_CAMERA)
+                    new File(getRealPathFromUri(uri)).delete();
+            });
+            dialog.setPositiveButton("Send", (dialog1, which) -> sendImageMessage(tilDesc.getEditText().getText().toString().trim(), uri, requestCode));
 
-        dialog.show();
+            dialog.show();
 
-    }
-
-    private void sendImageMessage(String desc, Uri imageUri, int code) {
+        }
+    */
+    private void sendImageMessage(String desc, Uri imageUri) {
 
         if (chatId == null) {
             Snackbar.make(findViewById(R.id.list_chat), "No Internet Connection!!", Snackbar.LENGTH_SHORT).show();
@@ -298,11 +321,9 @@ public class ChatActivity extends AppCompatActivity {
             return;
         }
 
-        Log.i("ConnectBase", imageUri.getPath());
-
         HashMap hashMap = new HashMap();
-        File file = new File(getRealPathFromUri(imageUri));
-        if (!file.exists()) {
+        File imageFile = new File(getRealPathFromUri(imageUri));
+        if (!imageFile.exists()) {
             return;
         }
 
@@ -310,48 +331,30 @@ public class ChatActivity extends AppCompatActivity {
         hashMap.put("sender", currentId);
         hashMap.put("messageType", "image");
         hashMap.put("description", desc);
-        hashMap.put("imageName", file.getName());
+        hashMap.put("imageName", imageFile.getName());
         hashMap.put("imageUrl", "");
         hashMap.put("thumbImage", "");
         hashMap.put("status", "");
         hashMap.put("time", ServerValue.TIMESTAMP);
         hashMap.put("seen", "false");
 
-        File thumbFile, imageFile;
+        File thumbFile;
 
         String pushKey = mChatReference.child(chatId).push().getKey();
-        try {
-
-            int q = 80;
-            if (code == REQUEST_CODE_GALLERY)
-                q = 40;
-
-            imageFile = compressImage(file, 700, 700, q, true);
-
-            thumbFile = compressImage(file, 250, 250, q - 10, false);
-
-
-        } catch (IOException e) {
-            showErrorDialog(e.getMessage());
-            return;
-        }
+        thumbFile = compressImage(imageFile, 250, 250, 25, false);
 
 
         StorageReference imageReference = mChatImageReference.child(pushKey + ".jpg");
         StorageReference thumbImageReference = mChatImageReference.child("ThumbImage").child(pushKey + ".jpg");
 
-        Uri thumbImageUri, imageFileUri;
-        if (Build.VERSION.SDK_INT < 24) {
-            thumbImageUri = FileProvider.getUriForFile(this, getPackageName() + ".provider", thumbFile);
-            imageFileUri = FileProvider.getUriForFile(this, getPackageName() + ".provider", imageFile);
-        } else {
-            thumbImageUri = Uri.fromFile(thumbFile);
-            imageFileUri = Uri.fromFile(imageFile);
-        }
+        Uri thumbImageUri = getUriFromFile(thumbFile);
+
+        Log.i("ConnectBase thumb", thumbImageUri.toString());
+        Log.i("ConnectBase img", imageUri.toString());
 
         //TODO: add notification for progress of image uploading
 
-        imageReference.putFile(imageFileUri).addOnCompleteListener(task -> {
+        imageReference.putFile(imageUri).addOnCompleteListener(task -> {
             if (task.isSuccessful()) {
                 imageReference.getDownloadUrl().addOnSuccessListener(uri -> {
                     hashMap.put("imageUrl", uri.toString());
@@ -360,8 +363,6 @@ public class ChatActivity extends AppCompatActivity {
                             thumbImageReference.getDownloadUrl().addOnSuccessListener(uri1 -> {
                                 hashMap.put("thumbImage", uri1.toString());
                                 mChatReference.child(chatId).child(pushKey).setValue(hashMap);
-                                if (code == REQUEST_CODE_CAMERA)
-                                    file.delete();
                                 thumbFile.delete();
                                 sendFileToSentFolder(imageFile);
 
@@ -375,6 +376,16 @@ public class ChatActivity extends AppCompatActivity {
         });
 
 
+    }
+
+    private Uri getUriFromFile(File file) {
+        Uri uri;
+
+        if (Build.VERSION.SDK_INT >= 24)
+            uri = FileProvider.getUriForFile(this, getPackageName() + ".provider", file);
+        else uri = Uri.fromFile(file);
+
+        return uri;
     }
 
     private String getRealPathFromUri(Uri uri) {
@@ -416,19 +427,25 @@ public class ChatActivity extends AppCompatActivity {
 
     }
 
-    File compressImage(File file, int h, int w, int q, boolean image) throws IOException {
+    File compressImage(File file, int h, int w, int q, boolean image) {
 
-        String path;
-        if (image) path = "/ConnectBase/temp/image";
-        else path = "/ConnectBase/temp/thumbImage";
+        try {
 
-        return new Compressor(this)
-                .setCompressFormat(Bitmap.CompressFormat.JPEG)
-                .setMaxHeight(h)
-                .setMaxWidth(w)
-                .setQuality(q)
-                .setDestinationDirectoryPath(Environment.getExternalStorageDirectory() + path)
-                .compressToFile(file);
+            String path;
+            if (image) path = "/ConnectBase/temp/image";
+            else path = "/ConnectBase/temp/thumbImage";
+
+            return new Compressor(this)
+                    .setCompressFormat(Bitmap.CompressFormat.JPEG)
+                    .setMaxHeight(h)
+                    .setMaxWidth(w)
+                    .setQuality(q)
+                    .setDestinationDirectoryPath(Environment.getExternalStorageDirectory() + path)
+                    .compressToFile(file);
+        } catch (Exception e) {
+            showErrorDialog(e.getMessage());
+        }
+        return null;
     }
 
 
