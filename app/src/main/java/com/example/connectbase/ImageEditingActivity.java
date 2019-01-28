@@ -182,10 +182,14 @@ public class ImageEditingActivity extends AppCompatActivity {
         Cursor cursor = getContentResolver().query(uri, null, null, null, null);
         if (cursor == null) {
             result = uri.getPath();
+            Log.i("GetReal", "null Cursor");
         } else {
             cursor.moveToFirst();
             int idx = cursor.getColumnIndex(MediaStore.Images.ImageColumns.DATA);
+            Log.i("GetReal", cursor.getColumnName(idx));
             result = cursor.getString(idx);
+            Log.i("GetReal", result);
+
             cursor.close();
         }
         return result;
