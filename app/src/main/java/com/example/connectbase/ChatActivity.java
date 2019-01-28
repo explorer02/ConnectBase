@@ -6,6 +6,8 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.graphics.Bitmap;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -21,6 +23,7 @@ import android.support.v4.content.FileProvider;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.Menu;
@@ -69,7 +72,8 @@ public class ChatActivity extends AppCompatActivity {
     static final int REQUEST_CODE_STORAGE = 104;
     static final int REQUEST_CODE_IMAGE_EDITING = 105;
     static final int REQUEST_CODE_VIEW_IMAGES = 106;
-    Uri cameraUri, fileUri, galleryUri;
+    Uri cameraUri;
+    RecyclerView chatList;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -82,6 +86,7 @@ public class ChatActivity extends AppCompatActivity {
         actionBar.setDisplayShowCustomEnabled(true);
 
         etMessage = findViewById(R.id.et_chat_message);
+        chatList = findViewById(R.id.list_chat);
 
         View view = getLayoutInflater().inflate(R.layout.layout_toolbar_chat_activity, null, false);
         actionBar.setCustomView(view, new ActionBar.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
@@ -132,6 +137,12 @@ public class ChatActivity extends AppCompatActivity {
 
 
     public void sendMessage(View view) {
+
+        if (!checkInternetConnection()) {
+
+            Snackbar.make(chatList, "No Internet Connection!!", Snackbar.LENGTH_SHORT).show();
+            return;
+        }
 
         if(chatId==null) {
             Snackbar.make(view,"No Internet Connection!!",Snackbar.LENGTH_SHORT).show();
@@ -184,7 +195,7 @@ public class ChatActivity extends AppCompatActivity {
 
             cameraUri = getUriFromFile(file);
 
-            intent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(file));
+            intent.putExtra(MediaStore.EXTRA_OUTPUT, cameraUri);
             intent.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION | Intent.FLAG_GRANT_READ_URI_PERMISSION);
             startActivityForResult(intent, REQUEST_CODE_CAMERA);
             dialog.hide();
@@ -196,24 +207,10 @@ public class ChatActivity extends AppCompatActivity {
             //intent.setType("image/*");
             intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
             startActivityForResult(Intent.createChooser(intent, "Select Images"), REQUEST_CODE_GALLERY);
+            dialog.hide();
         });
 
 
-    }
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        switch (requestCode) {
-            case REQUEST_CODE_STORAGE:
-                if (grantResults.length == 2 && grantResults[0] == PackageManager.PERMISSION_GRANTED && grantResults[1] == PackageManager.PERMISSION_GRANTED) {
-
-                } else {
-                    String message = "Reading and writing External Storage is required for Sending attachments";
-                    showErrorDialog(message);
-                }
-                break;
-        }
     }
 
     private void showErrorDialog(String message) {
@@ -235,38 +232,39 @@ public class ChatActivity extends AppCompatActivity {
 
                     startActivityForResult(new Intent(this, ImageEditingActivity.class).putExtra("path", cameraUri.toString()).putExtra("imageCode", REQUEST_CODE_CAMERA), REQUEST_CODE_IMAGE_EDITING);
 
-                    //showAddAttachmentDescriptionToImage(cameraUri, REQUEST_CODE_CAMERA);
                 } else if (resultCode == RESULT_CANCELED) {
-                    Snackbar.make(findViewById(R.id.list_chat), "Oops, Action Cancelled!!", Snackbar.LENGTH_SHORT).show();
+                    Snackbar.make(chatList, "Oops, Action Cancelled!!", Snackbar.LENGTH_SHORT).show();
                 }
                 break;
 
             case REQUEST_CODE_GALLERY:
                 if (resultCode == RESULT_OK && data != null) {
                     if (data.getData() != null) {
-                        startActivityForResult(new Intent(this, ImageEditingActivity.class).putExtra("path", data.getData()).putExtra("imageCode", REQUEST_CODE_GALLERY), REQUEST_CODE_IMAGE_EDITING);
+                        Log.i("Data", data.getData().toString());
+                        startActivityForResult(new Intent(this, ImageEditingActivity.class).putExtra("path", data.getData().toString()).putExtra("imageCode", REQUEST_CODE_GALLERY), REQUEST_CODE_IMAGE_EDITING);
 
                     } else if (data.getClipData() != null) {
+
+                        Log.i("Clip Data", data.getClipData().toString());
 
                         ClipData clipData = data.getClipData();
                         ArrayList<Uri> uriList = new ArrayList<>();
                         for (int i = 0; i < clipData.getItemCount(); i++) {
                             ClipData.Item item = clipData.getItemAt(i);
                             uriList.add(item.getUri());
+
                         }
 
                         if (uriList.size() == 1) {
                             startActivityForResult(new Intent(this, ImageEditingActivity.class).putExtra("path", uriList.get(0).toString()).putExtra("code", REQUEST_CODE_GALLERY), REQUEST_CODE_IMAGE_EDITING);
                         } else {
-                            //   for (int i = 0; i < uriList.size(); i++)
-                            //      showAddAttachmentDescriptionToImage(uriList.get(i), REQUEST_CODE_GALLERY);
                             Bundle bundle = new Bundle();
                             ArrayList<String> list = new ArrayList<>();
-                            for (int i = 0; i < Math.min(10, uriList.size()); i++)
+                            for (int i = 0; i < Math.min(20, uriList.size()); i++)
                                 list.add(uriList.get(i).toString());
                             bundle.putStringArrayList("uriList", list);
-                            if (uriList.size() > 10) {
-                                Snackbar.make(findViewById(R.id.list_chat), "Loading first 10 images..", Snackbar.LENGTH_SHORT).show();
+                            if (uriList.size() > 20) {
+                                Snackbar.make(chatList, "Loading first 20 images..", Snackbar.LENGTH_SHORT).show();
                             }
                             startActivityForResult(new Intent(this, ViewImagesActivity.class).putExtra("bundle", bundle), REQUEST_CODE_VIEW_IMAGES);
                         }
@@ -274,7 +272,7 @@ public class ChatActivity extends AppCompatActivity {
 
                     }
                 } else if (resultCode == RESULT_CANCELED) {
-                    Snackbar.make(findViewById(R.id.list_chat), "Oops, Action Cancelled!!", Snackbar.LENGTH_SHORT).show();
+                    Snackbar.make(chatList, "Oops, Action Cancelled!!", Snackbar.LENGTH_SHORT).show();
                 }
                 break;
             case REQUEST_CODE_IMAGE_EDITING:
@@ -284,45 +282,47 @@ public class ChatActivity extends AppCompatActivity {
                     sendImageMessage(bundle.getString("desc"), Uri.parse(bundle.getString("path")));
 
                 } else if (resultCode == RESULT_CANCELED) {
-                    Snackbar.make(findViewById(R.id.list_chat), "Oops, Action Cancelled!!", Snackbar.LENGTH_SHORT).show();
+                    Snackbar.make(chatList, "Oops, Action Cancelled!!", Snackbar.LENGTH_SHORT).show();
                 }
 
                 break;
+            case REQUEST_CODE_VIEW_IMAGES:
+                if (resultCode == RESULT_OK) {
+
+                    Bundle bundle = data.getBundleExtra("bundle");
+                    ArrayList<String> uriList, descList;
+                    uriList = bundle.getStringArrayList("uriList");
+                    descList = bundle.getStringArrayList("descList");
+                    for (int i = 0; i < uriList.size(); i++)
+                        sendImageMessage(descList.get(i), Uri.parse(uriList.get(i)));
+
+
+                } else if (resultCode == RESULT_CANCELED) {
+                    Snackbar.make(chatList, "Oops, Action Cancelled!!", Snackbar.LENGTH_SHORT).show();
+                }
         }
     }
 
-    /*
-        private void showAddAttachmentDescriptionToImage(Uri uri, int requestCode) {
-
-            AlertDialog.Builder dialog = new AlertDialog.Builder(this);
-            View view = getLayoutInflater().inflate(R.layout.layout_add_attachment_description, null, false);
-            dialog.setView(view);
-            ImageView ivPic = view.findViewById(R.id.iv_lAAD_pic);
-            ivPic.setImageURI(uri);
-            TextInputLayout tilDesc = view.findViewById(R.id.til_lAAD_desc);
-
-            dialog.setCancelable(false);
-
-            dialog.setNegativeButton("Cancel", (dialog1, which) -> {
-                if (requestCode == REQUEST_CODE_CAMERA)
-                    new File(getRealPathFromUri(uri)).delete();
-            });
-            dialog.setPositiveButton("Send", (dialog1, which) -> sendImageMessage(tilDesc.getEditText().getText().toString().trim(), uri, requestCode));
-
-            dialog.show();
-
-        }
-    */
     private void sendImageMessage(String desc, Uri imageUri) {
 
+        if (!checkInternetConnection()) {
+            Log.i("Conectbase sendImage", imageUri.toString());
+            Snackbar.make(chatList, "No Internet Connection!!", Snackbar.LENGTH_SHORT).show();
+            new File(getRealPathFromUri(imageUri)).delete();
+            //TODO: Add queue of messages to send in future
+            return;
+        }
+
+
         if (chatId == null) {
-            Snackbar.make(findViewById(R.id.list_chat), "No Internet Connection!!", Snackbar.LENGTH_SHORT).show();
+            Snackbar.make(chatList, "No Internet Connection!!", Snackbar.LENGTH_SHORT).show();
             generateChatId();
             return;
         }
 
         HashMap hashMap = new HashMap();
         File imageFile = new File(getRealPathFromUri(imageUri));
+
         if (!imageFile.exists()) {
             return;
         }
@@ -341,7 +341,7 @@ public class ChatActivity extends AppCompatActivity {
         File thumbFile;
 
         String pushKey = mChatReference.child(chatId).push().getKey();
-        thumbFile = compressImage(imageFile, 250, 250, 25, false);
+        thumbFile = compressImage(imageFile);
 
 
         StorageReference imageReference = mChatImageReference.child(pushKey + ".jpg");
@@ -349,8 +349,6 @@ public class ChatActivity extends AppCompatActivity {
 
         Uri thumbImageUri = getUriFromFile(thumbFile);
 
-        Log.i("ConnectBase thumb", thumbImageUri.toString());
-        Log.i("ConnectBase img", imageUri.toString());
 
         //TODO: add notification for progress of image uploading
 
@@ -379,24 +377,28 @@ public class ChatActivity extends AppCompatActivity {
     }
 
     private Uri getUriFromFile(File file) {
-        Uri uri;
 
         if (Build.VERSION.SDK_INT >= 24)
-            uri = FileProvider.getUriForFile(this, getPackageName() + ".provider", file);
-        else uri = Uri.fromFile(file);
+            return FileProvider.getUriForFile(getApplicationContext(), getApplicationContext()
+                    .getPackageName() + ".provider", file);
+        else return Uri.fromFile(file);
 
-        return uri;
     }
 
-    private String getRealPathFromUri(Uri uri) {
-        String result;
-        Cursor cursor = getContentResolver().query(uri, null, null, null, null);
+
+    public String getRealPathFromUri(Uri uri) {
+
+        String result = "";
+        Cursor cursor = getContentResolver().query(uri, new String[]{MediaStore.Images.Media.DATA}, null, null, null);
         if (cursor == null) {
             result = uri.getPath();
+            Log.i("GetReal", "null Cursor");
         } else {
             cursor.moveToFirst();
             int idx = cursor.getColumnIndex(MediaStore.Images.ImageColumns.DATA);
             result = cursor.getString(idx);
+            Log.i("GetReal", result);
+            Log.i("GetReal", cursor.getColumnName(idx));
             cursor.close();
         }
         return result;
@@ -427,19 +429,17 @@ public class ChatActivity extends AppCompatActivity {
 
     }
 
-    File compressImage(File file, int h, int w, int q, boolean image) {
+    File compressImage(File file) {
 
         try {
 
-            String path;
-            if (image) path = "/ConnectBase/temp/image";
-            else path = "/ConnectBase/temp/thumbImage";
+            String path = "/ConnectBase/temp/thumbImage";
 
             return new Compressor(this)
                     .setCompressFormat(Bitmap.CompressFormat.JPEG)
-                    .setMaxHeight(h)
-                    .setMaxWidth(w)
-                    .setQuality(q)
+                    .setMaxHeight(250)
+                    .setMaxWidth(250)
+                    .setQuality(25)
                     .setDestinationDirectoryPath(Environment.getExternalStorageDirectory() + path)
                     .compressToFile(file);
         } catch (Exception e) {
@@ -473,5 +473,29 @@ public class ChatActivity extends AppCompatActivity {
         startActivity(intent);
     }
 
+    private boolean checkInternetConnection() {
+
+        ConnectivityManager connectivityManager = (ConnectivityManager) getSystemService(CONNECTIVITY_SERVICE);
+
+        NetworkInfo networkInfo = connectivityManager.getActiveNetworkInfo();
+
+        return networkInfo != null;
+    }
+
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        switch (requestCode) {
+            case REQUEST_CODE_STORAGE:
+                if (grantResults.length == 2 && grantResults[0] == PackageManager.PERMISSION_GRANTED && grantResults[1] == PackageManager.PERMISSION_GRANTED) {
+
+                } else {
+                    String message = "Reading and writing External Storage is required for Sending attachments";
+                    showErrorDialog(message);
+                }
+                break;
+        }
+    }
+
 }
-//TODO use result of ImageEditing Activity

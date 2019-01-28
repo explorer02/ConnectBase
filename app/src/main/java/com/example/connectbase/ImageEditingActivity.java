@@ -59,7 +59,7 @@ public class ImageEditingActivity extends AppCompatActivity {
                 .setDefaultTextTypeface(ResourcesCompat.getFont(this, R.font.dancing_script))
                 .build();
         mPhotoEditorView.getSource().setImageURI(imageUri);
-        mPhotoEditorView.getSource().setScaleType(ImageView.ScaleType.FIT_XY);
+        mPhotoEditorView.getSource().setScaleType(ImageView.ScaleType.CENTER_CROP);
 
 
     }
@@ -125,14 +125,17 @@ public class ImageEditingActivity extends AppCompatActivity {
         mPhotoEditor.saveAsFile(file.getPath(), new PhotoEditor.OnSaveListener() {
             @Override
             public void onSuccess(@NonNull String imagePath) {
-                //dialog.dismiss();
-                if (imageCode == ChatActivity.REQUEST_CODE_CAMERA)
+                dialog.dismiss();
+                if (imageCode == ChatActivity.REQUEST_CODE_CAMERA) {
+                    Log.i("Uri Camera", imageUri.toString());
                     new File(getRealPathFromUri(imageUri)).delete();
-                File compressedFile = compressImage(file, 700, 700, 40);
+                }
+                File compressedFile = compressImage(file);
                 file.delete();
                 Uri uri;
                 if (Build.VERSION.SDK_INT >= 24)
-                    uri = FileProvider.getUriForFile(ImageEditingActivity.this, getPackageName() + ".provider", compressedFile);
+                    uri = FileProvider.getUriForFile(getApplicationContext(), getApplicationContext()
+                            .getPackageName() + ".provider", compressedFile);
                 else uri = Uri.fromFile(compressedFile);
 
                 Intent intent = new Intent(ImageEditingActivity.this, ChatActivity.class);
@@ -154,7 +157,7 @@ public class ImageEditingActivity extends AppCompatActivity {
 
     }
 
-    File compressImage(File file, int h, int w, int q) {
+    File compressImage(File file) {
 
         try {
 
@@ -163,9 +166,9 @@ public class ImageEditingActivity extends AppCompatActivity {
 
             return new Compressor(this)
                     .setCompressFormat(Bitmap.CompressFormat.JPEG)
-                    .setMaxHeight(h)
-                    .setMaxWidth(w)
-                    .setQuality(q)
+                    .setMaxHeight(600)
+                    .setMaxWidth(600)
+                    .setQuality(35)
                     .setDestinationDirectoryPath(Environment.getExternalStorageDirectory() + path)
                     .compressToFile(file);
         } catch (Exception e) {
@@ -188,5 +191,20 @@ public class ImageEditingActivity extends AppCompatActivity {
         return result;
     }
 
+    @Override
+    public void onBackPressed() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Go Back??")
+                .setMessage("Are you sure you do not want to send these images?")
+                .setNegativeButton("No", null)
+                .setPositiveButton("Yes", (dialog, which) -> {
+                    if (imageCode == ChatActivity.REQUEST_CODE_CAMERA)
+                        new File(getRealPathFromUri(imageUri)).delete();
+                    Intent intent = new Intent(ImageEditingActivity.this, ChatActivity.class);
+                    setResult(RESULT_CANCELED, intent);
+                    finish();
+                });
+        builder.show();
+    }
 
 }

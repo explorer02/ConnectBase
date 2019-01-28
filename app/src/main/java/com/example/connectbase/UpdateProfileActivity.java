@@ -9,6 +9,7 @@ import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Build;
+import android.os.Bundle;
 import android.os.Environment;
 import android.support.annotation.NonNull;
 import android.support.design.widget.TextInputLayout;
@@ -16,13 +17,14 @@ import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.content.FileProvider;
 import android.support.v7.app.AppCompatActivity;
-import android.os.Bundle;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.Toast;
+
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
@@ -39,11 +41,17 @@ import com.google.firebase.storage.UploadTask;
 import com.squareup.picasso.Picasso;
 import com.theartofdev.edmodo.cropper.CropImage;
 import com.theartofdev.edmodo.cropper.CropImageView;
+
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+
 import id.zelory.compressor.Compressor;
 
 public class UpdateProfileActivity extends AppCompatActivity {
@@ -71,7 +79,6 @@ public class UpdateProfileActivity extends AppCompatActivity {
         getSupportActionBar().setTitle("Update Profile");
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         sharedPreferences=getSharedPreferences("data",MODE_PRIVATE);
-
 
 
         currentId=getIntent().getStringExtra("id");
@@ -137,7 +144,7 @@ public class UpdateProfileActivity extends AppCompatActivity {
         ivResume.setOnClickListener(v -> {
             String location=sharedPreferences.getString("resumeLocation","");
 
-                if(!location.isEmpty()&&((new File(Uri.parse(location).getPath()).exists()&&Build.VERSION.SDK_INT<24)||Build.VERSION.SDK_INT>=24)){
+            if (!location.isEmpty() && (new File(Uri.parse(location).getPath()).exists() || Build.VERSION.SDK_INT >= 24)) {
                         Intent intent = new Intent(Intent.ACTION_VIEW);
                         intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
                         intent.setDataAndType(Uri.parse(location), "application/pdf");
@@ -197,12 +204,17 @@ public class UpdateProfileActivity extends AppCompatActivity {
                     ivResume.setVisibility(View.VISIBLE);
                 else ivResume.setVisibility(View.GONE);
 
-                if(!image.isEmpty())
-                Picasso.get()
-                        .load(image)
-                        .placeholder(R.drawable.avatar)
-                        .into(ivProfilePic);
-
+                if (!image.isEmpty()) {
+                    File file = new File(Environment.getExternalStorageDirectory() + "ConnectBase/temp/ProfilePics/" + currentId + ".jpg");
+                    if (file.exists()) {
+                        Log.i("ConnectBase Uri", getUriFromFile(file).toString());
+                        ivProfilePic.setImageURI(getUriFromFile(file));
+                    } else
+                        Picasso.get()
+                                .load(image)
+                                .placeholder(R.drawable.avatar)
+                                .into(ivProfilePic);
+                }
                 dialog.dismiss();
                 for (int i=0;i<arrayLayout.size();i++)
                     arrayLayout.get(i).clearFocus();
@@ -250,15 +262,11 @@ public class UpdateProfileActivity extends AppCompatActivity {
         hashmap.put("city",arrayLayout.get(8).getEditText().getText().toString().trim());
         hashmap.put("state",arrayLayout.get(9).getEditText().getText().toString().trim());
 
-        mUserReference.child(currentId).updateChildren(hashmap).addOnCompleteListener(new OnCompleteListener() {
-            @Override
-            public void onComplete(@NonNull Task task) {
-                if(task.isSuccessful()){
-                    Toast.makeText(UpdateProfileActivity.this, "Profile Updated", Toast.LENGTH_SHORT).show();
-                }
-                else {
-                    showErrorDialog(task.getException().getMessage());
-                }
+        mUserReference.child(currentId).updateChildren(hashmap).addOnCompleteListener(task -> {
+            if (task.isSuccessful()) {
+                Toast.makeText(UpdateProfileActivity.this, "Profile Updated", Toast.LENGTH_SHORT).show();
+            } else {
+                showErrorDialog(task.getException().getMessage());
             }
         });
 
@@ -316,11 +324,20 @@ public class UpdateProfileActivity extends AppCompatActivity {
                                                                 mUserReference.child(currentId).child("thumbImage").setValue(uri.toString()).addOnSuccessListener(new OnSuccessListener<Void>() {
                                                                     @Override
                                                                     public void onSuccess(Void aVoid) {
+                                                                        sendFileToProfilePicFolder(file);
+
+                                                                        File imageFile = new File(Environment.getExternalStorageDirectory() + "ConnectBase/temp/ProfilePics/" + currentId + ".jpg");
+                                                                        if (imageFile.exists())
+                                                                            ivProfilePic.setImageURI(getUriFromFile(imageFile));
+
+                                                                        /*else
                                                                         Picasso.get()
                                                                                 .load(downloadLink)
                                                                                 .placeholder(R.drawable.avatar)
                                                                         .error(R.drawable.avatar)
                                                                         .into(ivProfilePic);
+                                                                        */
+
                                                                         Toast.makeText(UpdateProfileActivity.this, "Profile pic updated", Toast.LENGTH_SHORT).show();
                                                                     }
                                                                 });
@@ -371,6 +388,34 @@ public class UpdateProfileActivity extends AppCompatActivity {
 
     }
 
+    private void sendFileToProfilePicFolder(File imageFile) {
+        String path = "/ConnectBase/temp/ProfilePics/";
+        File parentOutput = new File(Environment.getExternalStorageDirectory() + path);
+        parentOutput.mkdirs();
+        File outputFile = new File(parentOutput, currentId + ".jpg");
+        if (outputFile.exists())
+            outputFile.delete();
+        Log.i("ConnectBase Uri", "Sending file");
+        try {
+
+            InputStream in = new FileInputStream(imageFile);
+            OutputStream out = new FileOutputStream(outputFile);
+
+            byte[] buffer = new byte[1024];
+            int read;
+            while ((read = in.read(buffer)) != -1) {
+                out.write(buffer, 0, read);
+            }
+            in.close();
+            out.close();
+            imageFile.delete();
+            Log.i("ConnectBase Uri", getUriFromFile(outputFile).toString());
+        } catch (Exception e) {
+            showErrorDialog(e.getMessage());
+            Log.i("ConnectBase Uri", "Exception");
+        }
+    }
+
 
     public void showErrorDialog(String message){
         AlertDialog.Builder builder= new AlertDialog.Builder(this);
@@ -382,8 +427,8 @@ public class UpdateProfileActivity extends AppCompatActivity {
 
     void uploadResume(final Uri mainUri){
 
+        Log.i("Connectbase Uri", mainUri.toString());
         showDialog("Uploading Resume", ProgressDialog.STYLE_HORIZONTAL);
-
 
         final StorageReference myResumeReference=mResumeReference.child(currentId+".pdf");
 
@@ -416,8 +461,8 @@ public class UpdateProfileActivity extends AppCompatActivity {
         }).addOnProgressListener(new OnProgressListener<UploadTask.TaskSnapshot>() {
             @Override
             public void onProgress(UploadTask.TaskSnapshot taskSnapshot) {
-                dialog.setMax((int) (taskSnapshot.getTotalByteCount() / 100));
-                dialog.setProgress((int) (taskSnapshot.getBytesTransferred() / 100));
+                dialog.setMax((int) (taskSnapshot.getTotalByteCount() / 1000));
+                dialog.setProgress((int) (taskSnapshot.getBytesTransferred() / 1000));
             }
         });
 
@@ -445,6 +490,7 @@ public class UpdateProfileActivity extends AppCompatActivity {
                             if(Build.VERSION.SDK_INT>=Build.VERSION_CODES.N) {
                                 uri = FileProvider.getUriForFile(getApplicationContext(), getApplicationContext()
                                         .getPackageName() + ".provider", file);
+                                Log.i("Connectbase resume", uri.toString());
                             }
                             else uri=Uri.fromFile(file);
                             sharedPreferences.edit()
@@ -495,4 +541,15 @@ public class UpdateProfileActivity extends AppCompatActivity {
                 break;
         }
     }
+
+    private Uri getUriFromFile(File file) {
+
+        if (Build.VERSION.SDK_INT >= 24)
+            return FileProvider.getUriForFile(getApplicationContext(), getApplicationContext()
+                    .getPackageName() + ".provider", file);
+        else return Uri.fromFile(file);
+
+    }
 }
+
+

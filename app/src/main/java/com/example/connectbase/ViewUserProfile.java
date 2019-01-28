@@ -175,7 +175,7 @@ public class ViewUserProfile extends AppCompatActivity {
                                 if (!user.getResume().trim().isEmpty())
                                     ivResume.setVisibility(View.VISIBLE);
                                 tvResume.setVisibility(View.VISIBLE);
-                                btnSend.setText("Remove from Friendlist");
+                                btnSend.setText("Remove from FriendList");
                                 btnSend.setClickable(true);
                                 btnReject.setVisibility(View.GONE);
                             }
