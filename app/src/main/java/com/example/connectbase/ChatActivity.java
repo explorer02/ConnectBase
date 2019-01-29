@@ -4,7 +4,6 @@ import android.Manifest;
 import android.content.ClipData;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
@@ -65,7 +64,7 @@ public class ChatActivity extends AppCompatActivity {
     DatabaseReference mChatIdReference, mChatReference;
     final int REQUEST_CODE_GALLERY = 1031;
     EditText etMessage;
-    String chatId=null;
+    String chatId = null;
     static final int REQUEST_CODE_CAMERA = 101;
     static final int REQUEST_CODE_FILE = 102;
     StorageReference mChatImageReference;
@@ -73,6 +72,7 @@ public class ChatActivity extends AppCompatActivity {
     static final int REQUEST_CODE_IMAGE_EDITING = 105;
     static final int REQUEST_CODE_VIEW_IMAGES = 106;
     Uri cameraUri;
+    File cameraFile;
     RecyclerView chatList;
 
     @Override
@@ -120,9 +120,9 @@ public class ChatActivity extends AppCompatActivity {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                 if (dataSnapshot.hasChild("value"))
-                    chatId=dataSnapshot.child("value").getValue().toString();
+                    chatId = dataSnapshot.child("value").getValue().toString();
                 else {
-                    chatId=mChatIdReference.child(currentId).child(id).push().getKey();
+                    chatId = mChatIdReference.child(currentId).child(id).push().getKey();
                     mChatIdReference.child(currentId).child(id).child("value").setValue(chatId);
                     mChatIdReference.child(id).child(currentId).child("value").setValue(chatId);
                 }
@@ -144,8 +144,8 @@ public class ChatActivity extends AppCompatActivity {
             return;
         }
 
-        if(chatId==null) {
-            Snackbar.make(view,"No Internet Connection!!",Snackbar.LENGTH_SHORT).show();
+        if (chatId == null) {
+            Snackbar.make(view, "No Internet Connection!!", Snackbar.LENGTH_SHORT).show();
             generateChatId();
             return;
         }
@@ -154,11 +154,11 @@ public class ChatActivity extends AppCompatActivity {
         etMessage.setText(null);
         if (message.isEmpty())
             return;
-        HashMap map=new HashMap();
-        map.put("messageType","text");
-        map.put("message",message);
-        map.put("sender",currentId);
-        map.put("time",ServerValue.TIMESTAMP);
+        HashMap map = new HashMap();
+        map.put("messageType", "text");
+        map.put("message", message);
+        map.put("sender", currentId);
+        map.put("time", ServerValue.TIMESTAMP);
         map.put("seen", "false");
 
         mChatReference.child(chatId).push().setValue(map);
@@ -192,7 +192,7 @@ public class ChatActivity extends AppCompatActivity {
             File parentFile = new File(Environment.getExternalStorageDirectory() + "/ConnectBase/temp");
             parentFile.mkdirs();
             File file = new File(parentFile, "IMG_" + new Date().getTime() + ".jpg");
-
+            cameraFile = file;
             cameraUri = getUriFromFile(file);
 
             intent.putExtra(MediaStore.EXTRA_OUTPUT, cameraUri);
@@ -203,7 +203,7 @@ public class ChatActivity extends AppCompatActivity {
 
         ivGallery.setOnClickListener(v -> {
             Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.INTERNAL_CONTENT_URI);
-            //Intent intent=new Intent(Intent.ACTION_GET_CONTENT);
+            //Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
             //intent.setType("image/*");
             intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
             startActivityForResult(Intent.createChooser(intent, "Select Images"), REQUEST_CODE_GALLERY);
@@ -230,7 +230,12 @@ public class ChatActivity extends AppCompatActivity {
             case REQUEST_CODE_CAMERA:
                 if (resultCode == RESULT_OK) {
 
-                    startActivityForResult(new Intent(this, ImageEditingActivity.class).putExtra("path", cameraUri.toString()).putExtra("imageCode", REQUEST_CODE_CAMERA), REQUEST_CODE_IMAGE_EDITING);
+                    Intent intent = new Intent(this, ImageEditingActivity.class);
+                    intent.putExtra("uri", cameraUri.toString());
+                    intent.putExtra("path", cameraFile.toString());
+                    intent.putExtra("imageCode", REQUEST_CODE_CAMERA);
+
+                    startActivityForResult(intent, REQUEST_CODE_IMAGE_EDITING);
 
                 } else if (resultCode == RESULT_CANCELED) {
                     Snackbar.make(chatList, "Oops, Action Cancelled!!", Snackbar.LENGTH_SHORT).show();
@@ -240,8 +245,13 @@ public class ChatActivity extends AppCompatActivity {
             case REQUEST_CODE_GALLERY:
                 if (resultCode == RESULT_OK && data != null) {
                     if (data.getData() != null) {
+                        Intent intent = new Intent(this, ImageEditingActivity.class);
+                        intent.putExtra("uri", data.getData().toString());
+                        intent.putExtra("imageCode", REQUEST_CODE_GALLERY);
+                        startActivityForResult(intent, REQUEST_CODE_IMAGE_EDITING);
+
                         Log.i("Data", data.getData().toString());
-                        startActivityForResult(new Intent(this, ImageEditingActivity.class).putExtra("path", data.getData().toString()).putExtra("imageCode", REQUEST_CODE_GALLERY), REQUEST_CODE_IMAGE_EDITING);
+
 
                     } else if (data.getClipData() != null) {
 
@@ -256,7 +266,7 @@ public class ChatActivity extends AppCompatActivity {
                         }
 
                         if (uriList.size() == 1) {
-                            startActivityForResult(new Intent(this, ImageEditingActivity.class).putExtra("path", uriList.get(0).toString()).putExtra("code", REQUEST_CODE_GALLERY), REQUEST_CODE_IMAGE_EDITING);
+                            startActivityForResult(new Intent(this, ImageEditingActivity.class).putExtra("uri", uriList.get(0).toString()).putExtra("code", REQUEST_CODE_GALLERY), REQUEST_CODE_IMAGE_EDITING);
                         } else {
                             Bundle bundle = new Bundle();
                             ArrayList<String> list = new ArrayList<>();
@@ -269,7 +279,6 @@ public class ChatActivity extends AppCompatActivity {
                             startActivityForResult(new Intent(this, ViewImagesActivity.class).putExtra("bundle", bundle), REQUEST_CODE_VIEW_IMAGES);
                         }
 
-
                     }
                 } else if (resultCode == RESULT_CANCELED) {
                     Snackbar.make(chatList, "Oops, Action Cancelled!!", Snackbar.LENGTH_SHORT).show();
@@ -279,7 +288,11 @@ public class ChatActivity extends AppCompatActivity {
                 if (resultCode == RESULT_OK) {
 
                     Bundle bundle = data.getBundleExtra("uriBundle");
-                    sendImageMessage(bundle.getString("desc"), Uri.parse(bundle.getString("path")));
+
+                    Log.i("BundleData", bundle.getString("desc"));
+                    Log.i("BundleData", bundle.getString("path"));
+
+                    sendImageMessage(bundle.getString("desc"), bundle.getString("path"));
 
                 } else if (resultCode == RESULT_CANCELED) {
                     Snackbar.make(chatList, "Oops, Action Cancelled!!", Snackbar.LENGTH_SHORT).show();
@@ -290,11 +303,11 @@ public class ChatActivity extends AppCompatActivity {
                 if (resultCode == RESULT_OK) {
 
                     Bundle bundle = data.getBundleExtra("bundle");
-                    ArrayList<String> uriList, descList;
-                    uriList = bundle.getStringArrayList("uriList");
+                    ArrayList<String> pathList, descList;
+                    pathList = bundle.getStringArrayList("pathList");
                     descList = bundle.getStringArrayList("descList");
-                    for (int i = 0; i < uriList.size(); i++)
-                        sendImageMessage(descList.get(i), Uri.parse(uriList.get(i)));
+                    for (int i = 0; i < pathList.size(); i++)
+                        sendImageMessage(descList.get(i), pathList.get(i));
 
 
                 } else if (resultCode == RESULT_CANCELED) {
@@ -303,12 +316,12 @@ public class ChatActivity extends AppCompatActivity {
         }
     }
 
-    private void sendImageMessage(String desc, Uri imageUri) {
+    private void sendImageMessage(String desc, String path) {
 
+        Log.i("SendImageFile", path);
         if (!checkInternetConnection()) {
-            Log.i("Conectbase sendImage", imageUri.toString());
             Snackbar.make(chatList, "No Internet Connection!!", Snackbar.LENGTH_SHORT).show();
-            new File(getRealPathFromUri(imageUri)).delete();
+            new File(path).delete();
             //TODO: Add queue of messages to send in future
             return;
         }
@@ -321,7 +334,7 @@ public class ChatActivity extends AppCompatActivity {
         }
 
         HashMap hashMap = new HashMap();
-        File imageFile = new File(getRealPathFromUri(imageUri));
+        File imageFile = new File(path);
 
         if (!imageFile.exists()) {
             return;
@@ -338,10 +351,8 @@ public class ChatActivity extends AppCompatActivity {
         hashMap.put("time", ServerValue.TIMESTAMP);
         hashMap.put("seen", "false");
 
-        File thumbFile;
-
         String pushKey = mChatReference.child(chatId).push().getKey();
-        thumbFile = compressImage(imageFile);
+        File thumbFile = compressImage(imageFile);
 
 
         StorageReference imageReference = mChatImageReference.child(pushKey + ".jpg");
@@ -352,7 +363,8 @@ public class ChatActivity extends AppCompatActivity {
 
         //TODO: add notification for progress of image uploading
 
-        imageReference.putFile(imageUri).addOnCompleteListener(task -> {
+
+        imageReference.putFile(getUriFromFile(imageFile)).addOnCompleteListener(task -> {
             if (task.isSuccessful()) {
                 imageReference.getDownloadUrl().addOnSuccessListener(uri -> {
                     hashMap.put("imageUrl", uri.toString());
@@ -361,6 +373,7 @@ public class ChatActivity extends AppCompatActivity {
                             thumbImageReference.getDownloadUrl().addOnSuccessListener(uri1 -> {
                                 hashMap.put("thumbImage", uri1.toString());
                                 mChatReference.child(chatId).child(pushKey).setValue(hashMap);
+                                Snackbar.make(chatList, "Message Sent Successfully", Snackbar.LENGTH_SHORT).show();
                                 thumbFile.delete();
                                 sendFileToSentFolder(imageFile);
 
@@ -386,30 +399,12 @@ public class ChatActivity extends AppCompatActivity {
     }
 
 
-    public String getRealPathFromUri(Uri uri) {
-
-        String result = "";
-        Cursor cursor = getContentResolver().query(uri, new String[]{MediaStore.Images.Media.DATA}, null, null, null);
-        if (cursor == null) {
-            result = uri.getPath();
-            Log.i("GetReal", "null Cursor");
-        } else {
-            cursor.moveToFirst();
-            int idx = cursor.getColumnIndex(MediaStore.Images.ImageColumns.DATA);
-            result = cursor.getString(idx);
-            Log.i("GetReal", result);
-            Log.i("GetReal", cursor.getColumnName(idx));
-            cursor.close();
-        }
-        return result;
-    }
-
     private void sendFileToSentFolder(File imageFile) {
 
         String path = "/ConnectBase/Media/Images/" + user.getName() + "\t\t" + id + "/sent";
         File parentOutput = new File(Environment.getExternalStorageDirectory() + path);
-        File outputFile = new File(parentOutput, imageFile.getName());
         parentOutput.mkdirs();
+        File outputFile = new File(parentOutput, imageFile.getName());
         try {
 
             InputStream in = new FileInputStream(imageFile);
@@ -497,5 +492,6 @@ public class ChatActivity extends AppCompatActivity {
                 break;
         }
     }
+
 
 }

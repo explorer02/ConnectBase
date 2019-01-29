@@ -8,7 +8,6 @@ import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
-import android.provider.MediaStore;
 import android.support.annotation.NonNull;
 import android.support.v4.content.FileProvider;
 import android.support.v7.app.AlertDialog;
@@ -32,7 +31,7 @@ import id.zelory.compressor.Compressor;
 public class ViewImagesActivity extends AppCompatActivity {
 
     ArrayList<Uri> uriList = new ArrayList<>();
-    ArrayList<Uri> compressedUriList = new ArrayList<>();
+    ArrayList<String> compressedPathList = new ArrayList<>();
     ArrayList<String> descList;
     RecyclerView recyclerView;
     Adapter adapter;
@@ -64,14 +63,11 @@ public class ViewImagesActivity extends AppCompatActivity {
 
     public void doneEditing(View view) {
 
-        ArrayList<String> uriList = new ArrayList<>();
+        ArrayList<String> pathList = new ArrayList<>(compressedPathList);
 
-        for (int i = 0; i < compressedUriList.size(); i++) {
-            uriList.add(compressedUriList.get(i).toString());
-        }
         Intent intent = new Intent(this, ChatActivity.class);
         Bundle bundle = new Bundle();
-        bundle.putStringArrayList("uriList", uriList);
+        bundle.putStringArrayList("pathList", pathList);
         bundle.putStringArrayList("descList", descList);
         intent.putExtra("bundle", bundle);
         setResult(RESULT_OK, intent);
@@ -79,22 +75,21 @@ public class ViewImagesActivity extends AppCompatActivity {
 
     }
 
-    private Uri getUriFromFile(File file) {
+    /* private Uri getUriFromFile(File file) {
 
-        if (Build.VERSION.SDK_INT >= 24)
-            return FileProvider.getUriForFile(getApplicationContext(), getApplicationContext()
-                    .getPackageName() + ".provider", file);
-        else return Uri.fromFile(file);
+         if (Build.VERSION.SDK_INT >= 24)
+             return FileProvider.getUriForFile(getApplicationContext(), getApplicationContext()
+                     .getPackageName() + ".provider", file);
+         else return Uri.fromFile(file);
 
-    }
-
-
+     }
+ */
     File compressImage(File file) {
 
         try {
 
             String path;
-            path = "/ConnectBase/temp/image/compress";
+            path = "/ConnectBase/temp/image/compress/";
 
             return new Compressor(this)
                     .setCompressFormat(Bitmap.CompressFormat.JPEG)
@@ -110,20 +105,21 @@ public class ViewImagesActivity extends AppCompatActivity {
     }
 
     private String getRealPathFromUri(Uri uri) {
-        String result;
-        Cursor cursor = getContentResolver().query(uri, null, null, null, null);
-        if (cursor == null) {
-            result = uri.getPath();
-            Log.i("GetReal", "null Cursor");
-        } else {
+        Log.i("ConnectBase BatchUri", uri.toString());
+        Log.i("ConnectBase BatchPath", uri.getPath());
+        Log.i("ConnectBase File Exist", String.valueOf(new File(uri.getPath()).exists()));
+        Cursor cursor = getContentResolver().query(uri, null, null, null, null, null);
+        if (cursor != null) {
             cursor.moveToFirst();
-            int idx = cursor.getColumnIndex(MediaStore.Images.ImageColumns.DATA);
-            result = cursor.getString(idx);
-            Log.i("GetReal", result);
-            Log.i("GetReal", cursor.getColumnName(idx));
-            cursor.close();
+            int idx = cursor.getColumnIndex("_data");
+            if (idx < 0)
+                Log.i("ConnectBase", "Col not found");
+            else {
+                return cursor.getString(idx);
+            }
         }
-        return result;
+        return uri.getPath();
+
     }
 
     @Override
@@ -133,8 +129,8 @@ public class ViewImagesActivity extends AppCompatActivity {
                 .setMessage("Are you sure you do not want to send these images?")
                 .setNegativeButton("No", null)
                 .setPositiveButton("Yes", (dialog, which) -> {
-                    for (int i = 0; i < compressedUriList.size(); i++)
-                        new File(getRealPathFromUri(compressedUriList.get(i))).delete();
+                    for (int i = 0; i < compressedPathList.size(); i++)
+                        new File(compressedPathList.get(i)).delete();
                     dialog.dismiss();
                     Intent intent = new Intent(ViewImagesActivity.this, ChatActivity.class);
                     setResult(RESULT_CANCELED, intent);
@@ -143,13 +139,24 @@ public class ViewImagesActivity extends AppCompatActivity {
         builder.show();
     }
 
+    private Uri getUriFromFile(File file) {
+
+        if (Build.VERSION.SDK_INT >= 24)
+            return FileProvider.getUriForFile(getApplicationContext(), getApplicationContext()
+                    .getPackageName() + ".provider", file);
+        else return Uri.fromFile(file);
+
+    }
+
     public class LoadImages extends AsyncTask<Void, Void, Void> {
 
         @Override
         protected Void doInBackground(Void... voids) {
 
             for (int i = 0; i < uriList.size(); i++) {
-                compressedUriList.add(getUriFromFile(compressImage(new File(getRealPathFromUri(uriList.get(i))))));
+                String path = getRealPathFromUri(uriList.get(i));
+                Log.i("ConnectBase Path", path);
+                compressedPathList.add(compressImage(new File(path)).getPath());
                 publishProgress();
             }
 
@@ -179,15 +186,17 @@ public class ViewImagesActivity extends AppCompatActivity {
             return new ViewHolder(view);
         }
 
+
         @Override
         public void onBindViewHolder(@NonNull ViewHolder viewHolder, int i) {
-            viewHolder.ivPic.setImageURI(compressedUriList.get(i));
+            viewHolder.ivPic.setImageURI(getUriFromFile(new File(compressedPathList.get(i))));
             int pos = viewHolder.getAdapterPosition();
+
             viewHolder.ivDelete.setOnClickListener(v -> {
-                File file = new File(getRealPathFromUri(compressedUriList.get(pos)));
+                File file = new File(compressedPathList.get(i));
                 if (file.exists())
                     file.delete();
-                compressedUriList.remove(pos);
+                compressedPathList.remove(pos);
                 descList.remove(i);
                 notifyItemRemoved(pos);
                 notifyItemRangeChanged(pos, getItemCount());
@@ -220,7 +229,7 @@ public class ViewImagesActivity extends AppCompatActivity {
 
         @Override
         public int getItemCount() {
-            return compressedUriList.size();
+            return compressedPathList.size();
         }
 
         public class ViewHolder extends RecyclerView.ViewHolder {

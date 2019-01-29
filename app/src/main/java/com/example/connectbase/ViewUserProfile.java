@@ -6,11 +6,13 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
+import android.support.v4.content.FileProvider;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
@@ -131,13 +133,18 @@ public class ViewUserProfile extends AppCompatActivity {
         });
 
         ivResume.setOnClickListener(v -> {
-            String location= Environment.getExternalStorageDirectory()+"/ConnectBase/"+uid+".pdf";
+            String location = Environment.getExternalStorageDirectory() + "/ConnectBase/Resume/" + uid + ".pdf";
             File file=new File(location);
 
-            if(!location.isEmpty()&&new File(location).exists()){
+            if (file.exists()) {
                 Intent intent = new Intent(Intent.ACTION_VIEW);
                 intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-                intent.setDataAndType(Uri.fromFile(file), "application/pdf");
+                Uri uri;
+                if (Build.VERSION.SDK_INT >= 24)
+                    uri = FileProvider.getUriForFile(getApplicationContext(), getApplicationContext()
+                            .getPackageName() + ".provider", file);
+                else uri = Uri.fromFile(file);
+                intent.setDataAndType(uri, "application/pdf");
                 intent.setFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
                 startActivity(intent);
             }
@@ -395,25 +402,21 @@ public class ViewUserProfile extends AppCompatActivity {
         else {
             Toast.makeText(this, "Downloading file from Server...", Toast.LENGTH_SHORT).show();
 
-            File parentFile=new File(Environment.getExternalStorageDirectory()+"/ConnectBase/");
+            File parentFile = new File(Environment.getExternalStorageDirectory() + "/ConnectBase/Resume/");
             parentFile.mkdirs();
             final File file=new File(parentFile,uid+".pdf");
             showDialog("Downloading Resume", ProgressDialog.STYLE_HORIZONTAL);
-            mResumeReference.child(uid+".pdf").getFile(file).addOnCompleteListener(new OnCompleteListener<FileDownloadTask.TaskSnapshot>() {
-                @Override
-                public void onComplete(@NonNull Task<FileDownloadTask.TaskSnapshot> task) {
-                    if(task.isSuccessful()) {
-                        ivResume.setClickable(true);
-                        dialog.dismiss();
-                        Toast.makeText(ViewUserProfile.this, "File downloaded Successfully!!", Toast.LENGTH_SHORT).show();
-                    }
-                    else {
-                        ivResume.setClickable(true);
-                        dialog.dismiss();
-                        Toast.makeText(ViewUserProfile.this,task.getException().getMessage(),Toast.LENGTH_SHORT);
-                    }
-
+            mResumeReference.child(uid + ".pdf").getFile(file).addOnCompleteListener(task -> {
+                if (task.isSuccessful()) {
+                    ivResume.setClickable(true);
+                    dialog.dismiss();
+                    Toast.makeText(ViewUserProfile.this, "File downloaded Successfully!!", Toast.LENGTH_SHORT).show();
+                } else {
+                    ivResume.setClickable(true);
+                    dialog.dismiss();
+                    Toast.makeText(ViewUserProfile.this, task.getException().getMessage(), Toast.LENGTH_SHORT);
                 }
+
             }).addOnProgressListener(new OnProgressListener<FileDownloadTask.TaskSnapshot>() {
                 @Override
                 public void onProgress(FileDownloadTask.TaskSnapshot taskSnapshot) {
@@ -442,6 +445,7 @@ public class ViewUserProfile extends AppCompatActivity {
                 break;
         }
     }
+
     private void showDialog(String message,int style){
         dialog=new ProgressDialog(this);
         dialog.setMessage(message);

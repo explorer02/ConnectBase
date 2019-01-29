@@ -2,9 +2,9 @@ package com.example.connectbase;
 
 public class Todo {
 
-    //UpdateProfileActivity
-    //TODO Remove Shared Preference use
-    //TODO Bug fixes for UriExposed Exception in android 7 and above
+    //TODO Check file size before editing to make slight compression
+    //TODO Test resume download on android 8
+    //TODO check date for resume files so that resume will not be outdated
 
 
 }

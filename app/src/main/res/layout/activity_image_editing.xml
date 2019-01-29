@@ -20,17 +20,22 @@
 
     <ja.burhanrashid52.photoeditor.PhotoEditorView
         android:id="@+id/photoEditor_ImageEditing"
-        android:layout_width="400dp"
-        android:layout_height="400dp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
         android:layout_marginTop="50dp"
         app:photo_src="@color/colorPrimary" />
 
+
     <LinearLayout
-        android:id="@+id/linearLayout_editTools"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
-        android:layout_marginBottom="100dp"
+        android:orientation="vertical">
+
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
         android:orientation="horizontal">
 
         <ImageView
@@ -59,6 +64,23 @@
             android:src="@drawable/ic_text_field"
             android:tag="text" />
 
+            <ImageView
+                android:id="@+id/iv_imageEdit_rotleft"
+                android:layout_width="0dp"
+                android:layout_height="40dp"
+                android:layout_weight="1"
+                android:onClick="editingToolClick"
+                android:src="@drawable/ic_rotate_left"
+                android:tag="rotleft" />
+
+            <ImageView
+                android:id="@+id/iv_imageEdit_rotright"
+                android:layout_width="0dp"
+                android:layout_height="40dp"
+                android:layout_weight="1"
+                android:onClick="editingToolClick"
+                android:src="@drawable/ic_rotate_right"
+                android:tag="rotright" />
         <ImageView
             android:id="@+id/iv_imageEdit_undo"
             android:layout_width="0dp"
@@ -84,14 +106,16 @@
         android:id="@+id/et_imageEdit_desc"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true"
         android:layout_marginBottom="40dp"
+        android:layout_marginTop="10dp"
         android:hint="Add Description..."
         android:inputType="textMultiLine"
         android:paddingLeft="10dp"
         android:paddingRight="10dp"
         android:textColor="@color/colorWhite"
         android:textColorHint="@color/colorWhite" />
+
+    </LinearLayout>
 
 
 </RelativeLayout>

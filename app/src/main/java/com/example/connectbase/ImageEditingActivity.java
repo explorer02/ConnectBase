@@ -4,23 +4,18 @@ import android.Manifest;
 import android.app.ProgressDialog;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
-import android.provider.MediaStore;
 import android.support.annotation.NonNull;
 import android.support.design.widget.Snackbar;
 import android.support.design.widget.TextInputEditText;
 import android.support.design.widget.TextInputLayout;
 import android.support.v4.app.ActivityCompat;
-import android.support.v4.content.FileProvider;
 import android.support.v4.content.res.ResourcesCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
@@ -41,15 +36,20 @@ public class ImageEditingActivity extends AppCompatActivity {
     EditText etDesc;
     Uri imageUri;
     int imageCode;
+    String imagePath;
+    int rotation = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setTheme(R.style.FullScreenTheme);
         setContentView(R.layout.activity_image_editing);
-        String path = getIntent().getStringExtra("path");
-        imageUri = Uri.parse(path);
+
+
         imageCode = getIntent().getIntExtra("imageCode", -1);
+        if (imageCode == ChatActivity.REQUEST_CODE_CAMERA)
+            imagePath = getIntent().getStringExtra("path");
+        imageUri = Uri.parse(getIntent().getStringExtra("uri"));
         etDesc = findViewById(R.id.et_imageEdit_desc);
 
 
@@ -103,6 +103,13 @@ public class ImageEditingActivity extends AppCompatActivity {
         } else if (tag.equals("redo")) {
             mPhotoEditor.redo();
 
+        } else if (tag.equals("rotleft")) {
+            rotation = (rotation - 90) % 360;
+            mPhotoEditorView.getSource().setRotation(rotation);
+
+        } else if (tag.equals("rotright")) {
+            rotation = (rotation + 90) % 360;
+            mPhotoEditorView.getSource().setRotation(rotation);
         }
 
     }
@@ -119,33 +126,33 @@ public class ImageEditingActivity extends AppCompatActivity {
         File file = new File(parentFile, "IMG_" + new Date().getTime() + ".jpg");
 
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 110);
             return;
         }
 
+
         mPhotoEditor.saveAsFile(file.getPath(), new PhotoEditor.OnSaveListener() {
             @Override
-            public void onSuccess(@NonNull String imagePath) {
+            public void onSuccess(@NonNull String savedImagePath) {
                 dialog.dismiss();
+
                 if (imageCode == ChatActivity.REQUEST_CODE_CAMERA) {
-                    Log.i("Uri Camera", imageUri.toString());
-                    new File(getRealPathFromUri(imageUri)).delete();
+                    new File(imagePath).delete();
                 }
                 File compressedFile = compressImage(file);
                 file.delete();
-                Uri uri;
+                /*Uri uri;
                 if (Build.VERSION.SDK_INT >= 24)
                     uri = FileProvider.getUriForFile(getApplicationContext(), getApplicationContext()
                             .getPackageName() + ".provider", compressedFile);
                 else uri = Uri.fromFile(compressedFile);
-
+*/
                 Intent intent = new Intent(ImageEditingActivity.this, ChatActivity.class);
-                setResult(RESULT_OK, intent);
-                Log.i("ConnectBase SaveAsFile", uri.toString());
                 Bundle bundle = new Bundle();
                 bundle.putString("desc", etDesc.getText().toString().trim());
-                bundle.putString("path", uri.toString());
+                bundle.putString("path", compressedFile.getPath());
                 intent.putExtra("uriBundle", bundle);
-
+                setResult(RESULT_OK, intent);
                 finish();
             }
 
@@ -156,6 +163,7 @@ public class ImageEditingActivity extends AppCompatActivity {
         });
 
     }
+
 
     File compressImage(File file) {
 
@@ -177,23 +185,6 @@ public class ImageEditingActivity extends AppCompatActivity {
         return null;
     }
 
-    private String getRealPathFromUri(Uri uri) {
-        String result;
-        Cursor cursor = getContentResolver().query(uri, null, null, null, null);
-        if (cursor == null) {
-            result = uri.getPath();
-            Log.i("GetReal", "null Cursor");
-        } else {
-            cursor.moveToFirst();
-            int idx = cursor.getColumnIndex(MediaStore.Images.ImageColumns.DATA);
-            Log.i("GetReal", cursor.getColumnName(idx));
-            result = cursor.getString(idx);
-            Log.i("GetReal", result);
-
-            cursor.close();
-        }
-        return result;
-    }
 
     @Override
     public void onBackPressed() {
@@ -203,7 +194,7 @@ public class ImageEditingActivity extends AppCompatActivity {
                 .setNegativeButton("No", null)
                 .setPositiveButton("Yes", (dialog, which) -> {
                     if (imageCode == ChatActivity.REQUEST_CODE_CAMERA)
-                        new File(getRealPathFromUri(imageUri)).delete();
+                        new File(imagePath).delete();
                     Intent intent = new Intent(ImageEditingActivity.this, ChatActivity.class);
                     setResult(RESULT_CANCELED, intent);
                     finish();
