@@ -4,7 +4,6 @@ import android.Manifest;
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.graphics.Bitmap;
@@ -13,6 +12,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.support.annotation.NonNull;
+import android.support.design.widget.Snackbar;
 import android.support.design.widget.TextInputLayout;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
@@ -24,7 +24,6 @@ import android.view.View;
 import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.ImageView;
-import android.widget.Toast;
 
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -32,9 +31,7 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.storage.FirebaseStorage;
-import com.google.firebase.storage.OnProgressListener;
 import com.google.firebase.storage.StorageReference;
-import com.google.firebase.storage.UploadTask;
 import com.squareup.picasso.Picasso;
 import com.theartofdev.edmodo.cropper.CropImage;
 import com.theartofdev.edmodo.cropper.CropImageView;
@@ -61,8 +58,7 @@ public class UpdateProfileActivity extends AppCompatActivity {
     DatabaseReference mUserReference;
     StorageReference mProfileImageReference,mResumeReference;
     final int REQUEST_CODE_PICK_RESUME=101,REQUEST_CODE_STORAGE_READ=201,REQUEST_CODE_STORAGE_WRITE=202;
-    SharedPreferences sharedPreferences;
-
+    View relativeLayout;
     ImageView ivCamera,ivProfilePic;
     Uri resumeUri;
 
@@ -75,8 +71,6 @@ public class UpdateProfileActivity extends AppCompatActivity {
         setSupportActionBar(toolbar);
         getSupportActionBar().setTitle("Update Profile");
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-        sharedPreferences=getSharedPreferences("data",MODE_PRIVATE);
-
 
         currentId=getIntent().getStringExtra("id");
         arrayLayout=new ArrayList<>();
@@ -92,6 +86,7 @@ public class UpdateProfileActivity extends AppCompatActivity {
         arrayLayout.add(findViewById(R.id.til_updateProfile_state));
         btnUpdate=findViewById(R.id.btn_updateProfile_update);
 
+        relativeLayout = findViewById(R.id.relativeLayout_update_profile);
 
         ivCamera=findViewById(R.id.iv_updateProfile_camera);
         ivProfilePic=findViewById(R.id.iv_updateProfile_profilePic);
@@ -127,6 +122,9 @@ public class UpdateProfileActivity extends AppCompatActivity {
             startActivityForResult(intent, REQUEST_CODE_PICK_RESUME);
         });
 
+        ivResume.setOnDragListener((v, event) -> false);
+
+
         ivResume.setOnClickListener(v -> {
             File parentFile = new File(Environment.getExternalStorageDirectory() + "/ConnectBase/Resume/");
             File resumeFile = new File(parentFile, "resume.pdf");
@@ -141,7 +139,7 @@ public class UpdateProfileActivity extends AppCompatActivity {
                     }
 
                 else {
-                    Toast.makeText(UpdateProfileActivity.this, "File Not found on your device", Toast.LENGTH_SHORT).show();
+                Snackbar.make(relativeLayout, "File Not found on your device", Snackbar.LENGTH_SHORT).show();
                     downloadResume();
                     ivResume.setClickable(false);
                 }
@@ -194,15 +192,30 @@ public class UpdateProfileActivity extends AppCompatActivity {
                 else ivResume.setVisibility(View.GONE);
 
                 if (!image.isEmpty()) {
-                    File file = new File(Environment.getExternalStorageDirectory() + "ConnectBase/temp/ProfilePics/" + currentId + ".jpg");
-                    if (file.exists()) {
-                        Log.i("ConnectBase Uri", getUriFromFile(file).toString());
-                        ivProfilePic.setImageURI(getUriFromFile(file));
-                    } else
-                        Picasso.get()
-                                .load(image)
-                                .placeholder(R.drawable.avatar)
-                                .into(ivProfilePic);
+                    String path = Environment.getExternalStorageDirectory() + "/ConnectBase/ProfilePics/";
+                    File parentFile = new File(path);
+                    parentFile.mkdirs();
+                    File imageFile = new File(parentFile, currentId + ".jpg");
+
+                    if (imageFile.exists()) {
+                        Log.i("ConnectBase Uri", getUriFromFile(imageFile).toString());
+                        ivProfilePic.setImageURI(getUriFromFile(imageFile));
+                    } else {
+
+                        Log.i("ConnectBase Else", "Here");
+                        mProfileImageReference.child(currentId + ".jpg").getFile(imageFile).addOnCompleteListener(task -> {
+                            if (task.isSuccessful()) {
+                                ivProfilePic.setImageURI(getUriFromFile(imageFile));
+                            } else {
+                                Snackbar.make(ivProfilePic, "Failed to load Image", Snackbar.LENGTH_SHORT).show();
+                                Log.i("ConnectBase", task.getException().getMessage());
+                                Picasso.get()
+                                        .load(image)
+                                        .placeholder(R.drawable.avatar)
+                                        .into(ivProfilePic);
+                            }
+                        });
+                    }
                 }
                 dialog.dismiss();
                 for (int i=0;i<arrayLayout.size();i++)
@@ -253,7 +266,7 @@ public class UpdateProfileActivity extends AppCompatActivity {
 
         mUserReference.child(currentId).updateChildren(hashmap).addOnCompleteListener(task -> {
             if (task.isSuccessful()) {
-                Toast.makeText(UpdateProfileActivity.this, "Profile Updated", Toast.LENGTH_SHORT).show();
+                Snackbar.make(relativeLayout, "Profile Updated", Snackbar.LENGTH_SHORT).show();
             } else {
                 showErrorDialog(task.getException().getMessage());
             }
@@ -273,6 +286,7 @@ public class UpdateProfileActivity extends AppCompatActivity {
                     final Uri resultUri = result.getUri();
                     btnUpdate.setPressed(true);
                     final File file = new File(resultUri.getPath());
+                    Log.i("ConnectBase GetPath", file.getPath());
                     final Bitmap bitmap = new Compressor(this)
                             .setCompressFormat(Bitmap.CompressFormat.JPEG)
                             .setMaxHeight(200)
@@ -299,7 +313,7 @@ public class UpdateProfileActivity extends AppCompatActivity {
                                 mUserReference.child(currentId).child("image").setValue(downloadLink).addOnSuccessListener(aVoid -> bitmapImageReference.putBytes(thumbByte).addOnSuccessListener(taskSnapshot -> bitmapImageReference.getDownloadUrl().addOnSuccessListener(uri1 -> mUserReference.child(currentId).child("thumbImage").setValue(uri1.toString()).addOnSuccessListener(aVoid1 -> {
                                     sendFileToProfilePicFolder(file);
 
-                                    File imageFile = new File(Environment.getExternalStorageDirectory() + "ConnectBase/temp/ProfilePics/" + currentId + ".jpg");
+                                    File imageFile = new File(Environment.getExternalStorageDirectory() + "ConnectBase/ProfilePics/" + currentId + ".jpg");
                                     if (imageFile.exists())
                                         ivProfilePic.setImageURI(getUriFromFile(imageFile));
 
@@ -311,19 +325,17 @@ public class UpdateProfileActivity extends AppCompatActivity {
                                     .into(ivProfilePic);
                                     */
 
-                                    Toast.makeText(UpdateProfileActivity.this, "Profile pic updated", Toast.LENGTH_SHORT).show();
+
+                                    Snackbar.make(relativeLayout, "Profile picture Updated", Snackbar.LENGTH_SHORT).show();
                                 }))));
                             });
                         } else {
                             dialog.dismiss();
                             showErrorDialog(task.getException().getMessage());
                         }
-                    }).addOnProgressListener(new OnProgressListener<UploadTask.TaskSnapshot>() {
-                        @Override
-                        public void onProgress(UploadTask.TaskSnapshot taskSnapshot) {
-                            dialog.setMax((int)(taskSnapshot.getTotalByteCount()/100));
-                            dialog.setProgress((int)(taskSnapshot.getBytesTransferred()/100));
-                        }
+                    }).addOnProgressListener(taskSnapshot -> {
+                        dialog.setMax((int) (taskSnapshot.getTotalByteCount() / 100));
+                        dialog.setProgress((int) (taskSnapshot.getBytesTransferred() / 100));
                     });
 
                 }
@@ -353,7 +365,7 @@ public class UpdateProfileActivity extends AppCompatActivity {
     }
 
     private void sendFileToProfilePicFolder(File imageFile) {
-        String path = "/ConnectBase/temp/ProfilePics/";
+        String path = "/ConnectBase/ProfilePics/";
         File parentOutput = new File(Environment.getExternalStorageDirectory() + path);
         parentOutput.mkdirs();
         File outputFile = new File(parentOutput, currentId + ".jpg");
@@ -403,7 +415,7 @@ public class UpdateProfileActivity extends AppCompatActivity {
                     String downloadLink = uri.toString();
                     mUserReference.child(currentId).child("resume").setValue(downloadLink).addOnSuccessListener(aVoid -> {
                         sendFileToResumeFolder(mainUri);
-                        Toast.makeText(UpdateProfileActivity.this, "Resume Uploaded Successfully", Toast.LENGTH_SHORT).show();
+                        Snackbar.make(relativeLayout, "Resume Uploaded Successfully!!", Snackbar.LENGTH_SHORT).show();
                     });
                 });
             } else {
@@ -460,17 +472,18 @@ public class UpdateProfileActivity extends AppCompatActivity {
             ActivityCompat.requestPermissions(this,new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},REQUEST_CODE_STORAGE_WRITE);
         }
         else {
-            Toast.makeText(this, "Downloading file from Server...", Toast.LENGTH_SHORT).show();
+            Snackbar.make(relativeLayout, "Downloading File from Server", Snackbar.LENGTH_SHORT).show();
+
 
             File parentFile = new File(Environment.getExternalStorageDirectory() + "/ConnectBase/Resume/");
             parentFile.mkdirs();
-                final File file=new File(parentFile,"resume.pdf");
+            final File file = new File(parentFile, "resume.pdf");
                 showDialog("Downloading Resume", ProgressDialog.STYLE_HORIZONTAL);
             mResumeReference.child(currentId + ".pdf").getFile(file).addOnCompleteListener(task -> {
                 if (task.isSuccessful()) {
                     ivResume.setClickable(true);
                     dialog.dismiss();
-                    Toast.makeText(UpdateProfileActivity.this, "File downloaded Successfully!!", Toast.LENGTH_SHORT).show();
+                    Snackbar.make(relativeLayout, "File Downloaded Successfully", Snackbar.LENGTH_SHORT).show();
                 } else {
                     ivResume.setClickable(true);
                     dialog.dismiss();
@@ -495,7 +508,8 @@ public class UpdateProfileActivity extends AppCompatActivity {
                 if(grantResults.length>0&&grantResults[0]==PackageManager.PERMISSION_GRANTED)
                     uploadResume(resumeUri);
                 else
-                Toast.makeText(this, "This functionality requires reading exernal storage permission", Toast.LENGTH_SHORT).show();
+
+                    Snackbar.make(relativeLayout, "This functionality requires reading external storage permission", Snackbar.LENGTH_SHORT).show();
 
                 break;
             case REQUEST_CODE_STORAGE_WRITE:
@@ -504,7 +518,7 @@ public class UpdateProfileActivity extends AppCompatActivity {
                     downloadResume();
                 else {
                     ivResume.setClickable(true);
-                    Toast.makeText(this, "This functionality requires writing exernal storage permission", Toast.LENGTH_SHORT).show();
+                    Snackbar.make(relativeLayout, "This functionality requires writing external storage permission", Snackbar.LENGTH_SHORT).show();
                 }
 
                 break;
@@ -535,6 +549,7 @@ public class UpdateProfileActivity extends AppCompatActivity {
         return uri.getPath();
 
     }
+
 }
 
 

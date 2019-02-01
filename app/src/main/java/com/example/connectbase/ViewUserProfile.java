@@ -138,14 +138,13 @@ public class ViewUserProfile extends AppCompatActivity {
 
             if (file.exists()) {
                 Intent intent = new Intent(Intent.ACTION_VIEW);
-                intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_CLEAR_TOP);
                 Uri uri;
                 if (Build.VERSION.SDK_INT >= 24)
                     uri = FileProvider.getUriForFile(getApplicationContext(), getApplicationContext()
                             .getPackageName() + ".provider", file);
                 else uri = Uri.fromFile(file);
                 intent.setDataAndType(uri, "application/pdf");
-                intent.setFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
                 startActivity(intent);
             }
 

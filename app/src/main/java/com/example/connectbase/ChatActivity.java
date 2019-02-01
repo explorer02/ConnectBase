@@ -48,6 +48,7 @@ import com.squareup.picasso.Picasso;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
@@ -67,7 +68,7 @@ public class ChatActivity extends AppCompatActivity {
     String chatId = null;
     static final int REQUEST_CODE_CAMERA = 101;
     static final int REQUEST_CODE_FILE = 102;
-    StorageReference mChatImageReference;
+    StorageReference mChatImageReference, mChatFileReference;
     static final int REQUEST_CODE_STORAGE = 104;
     static final int REQUEST_CODE_IMAGE_EDITING = 105;
     static final int REQUEST_CODE_VIEW_IMAGES = 106;
@@ -95,6 +96,7 @@ public class ChatActivity extends AppCompatActivity {
         mChatIdReference = FirebaseDatabase.getInstance().getReference().child("ChatId");
         mChatReference = FirebaseDatabase.getInstance().getReference().child("Chats");
         mChatImageReference = FirebaseStorage.getInstance().getReference().child("ChatImage");
+        mChatFileReference = FirebaseStorage.getInstance().getReference().child("ChatFiles");
 
         user = (Users) getIntent().getSerializableExtra("user");
         id = getIntent().getStringExtra("id");
@@ -210,6 +212,14 @@ public class ChatActivity extends AppCompatActivity {
             dialog.hide();
         });
 
+        ivFile.setOnClickListener(v -> {
+            Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+            intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
+            intent.setType("*/*");
+            startActivityForResult(intent, REQUEST_CODE_FILE);
+            dialog.hide();
+        });
+
 
     }
 
@@ -313,7 +323,111 @@ public class ChatActivity extends AppCompatActivity {
                 } else if (resultCode == RESULT_CANCELED) {
                     Snackbar.make(chatList, "Oops, Action Cancelled!!", Snackbar.LENGTH_SHORT).show();
                 }
+            case REQUEST_CODE_FILE:
+                if (resultCode == RESULT_OK) {
+
+                    if (data.getData() != null) {
+                        Log.i("ConnectBase FileUri", data.getData().toString());
+                        sendFileMessage(data.getData());
+                    } else if (data.getClipData() != null) {
+                        ClipData clipData = data.getClipData();
+                        for (int i = 0; i < clipData.getItemCount(); i++)
+                            sendFileMessage(clipData.getItemAt(i).getUri());
+                    }
+
+
+                } else if (resultCode == RESULT_CANCELED) {
+
+                    Snackbar.make(chatList, "Oops, Action Cancelled!!", Snackbar.LENGTH_SHORT).show();
+                }
         }
+    }
+
+    private void sendFileMessage(Uri uri) {
+
+        Log.i("SendFile", uri.toString());
+        if (!checkInternetConnection()) {
+            Snackbar.make(chatList, "No Internet Connection!!", Snackbar.LENGTH_SHORT).show();
+            //TODO: Add queue of messages to send in future
+            return;
+        }
+
+        if (chatId == null) {
+            Snackbar.make(chatList, "No Internet Connection!!", Snackbar.LENGTH_SHORT).show();
+            generateChatId();
+            return;
+        }
+
+        File file = createFileFromUri(uri);
+        Log.i("ConnectBase Path", file.getPath());
+
+        HashMap hashMap = new HashMap();
+
+        hashMap.put("sender", currentId);
+        hashMap.put("messageType", "file");
+        hashMap.put("description", "");
+        hashMap.put("fileUrl", "");
+        hashMap.put("status", "");
+        hashMap.put("fileName", file.getName());
+        hashMap.put("time", ServerValue.TIMESTAMP);
+        hashMap.put("seen", "false");
+
+
+        String pushKey = mChatReference.child(chatId).push().getKey();
+
+        StorageReference fileReference = mChatFileReference.child(chatId).child(pushKey + file.getName().substring(file.getName().lastIndexOf(".") + 1));
+
+        //TODO: add notification for progress of file uploading
+
+        fileReference.putFile(uri).addOnCompleteListener(task -> {
+            if (task.isSuccessful()) {
+                fileReference.getDownloadUrl().addOnSuccessListener(uri1 -> {
+                    hashMap.put("fileUrl", uri1.toString());
+                    mChatReference.child(chatId).child(pushKey).setValue(hashMap);
+                    Snackbar.make(chatList, "Message Sent Successfully", Snackbar.LENGTH_SHORT).show();
+                });
+            } else {
+                Snackbar.make(chatList, task.getException().getMessage(), Snackbar.LENGTH_SHORT).show();
+            }
+        });
+
+    }
+
+    private File createFileFromUri(Uri uri) {
+
+        try {
+            InputStream inputStream = getContentResolver().openInputStream(uri);
+            File parentFile = new File(Environment.getExternalStorageDirectory() + "/ConnectBase/temp/Files");
+            parentFile.mkdirs();
+            String name = uri.toString();
+
+            name = name.replace("%20", "-");
+            name = name.replace("%2F", "/");
+            name = name.replace("%3A", "/");
+            name = name.replace("%2C", "");
+            name = name.substring(name.lastIndexOf("/") + 1);
+
+            File file = new File(parentFile, name);
+            //f.setWritable(true, false);
+            OutputStream outputStream = new FileOutputStream(file);
+            byte buffer[] = new byte[1024];
+            int length = 0;
+
+            while ((length = inputStream.read(buffer)) > 0) {
+                outputStream.write(buffer, 0, length);
+            }
+
+            outputStream.close();
+            inputStream.close();
+
+            return file;
+        } catch (IOException e) {
+            System.out.println("error in creating a file");
+            e.printStackTrace();
+        }
+
+        return null;
+
     }
 
     private void sendImageMessage(String desc, String path) {
@@ -492,6 +606,5 @@ public class ChatActivity extends AppCompatActivity {
                 break;
         }
     }
-
 
 }
