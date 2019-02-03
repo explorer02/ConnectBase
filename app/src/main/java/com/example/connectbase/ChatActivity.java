@@ -4,6 +4,7 @@ import android.Manifest;
 import android.content.ClipData;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
@@ -72,6 +73,7 @@ public class ChatActivity extends AppCompatActivity {
     static final int REQUEST_CODE_STORAGE = 104;
     static final int REQUEST_CODE_IMAGE_EDITING = 105;
     static final int REQUEST_CODE_VIEW_IMAGES = 106;
+    static final int REQUEST_CODE_VIEW_FILES = 107;
     Uri cameraUri;
     File cameraFile;
     RecyclerView chatList;
@@ -191,7 +193,7 @@ public class ChatActivity extends AppCompatActivity {
 
         ivCamera.setOnClickListener(v -> {
             Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-            File parentFile = new File(Environment.getExternalStorageDirectory() + "/ConnectBase/temp");
+            File parentFile = new File(Environment.getExternalStorageDirectory() + "/ConnectBase/temp/image");
             parentFile.mkdirs();
             File file = new File(parentFile, "IMG_" + new Date().getTime() + ".jpg");
             cameraFile = file;
@@ -241,9 +243,8 @@ public class ChatActivity extends AppCompatActivity {
                 if (resultCode == RESULT_OK) {
 
                     Intent intent = new Intent(this, ImageEditingActivity.class);
-                    intent.putExtra("uri", cameraUri.toString());
                     intent.putExtra("path", cameraFile.toString());
-                    intent.putExtra("imageCode", REQUEST_CODE_CAMERA);
+                    // intent.putExtra("imageCode", REQUEST_CODE_CAMERA);
 
                     startActivityForResult(intent, REQUEST_CODE_IMAGE_EDITING);
 
@@ -256,16 +257,16 @@ public class ChatActivity extends AppCompatActivity {
                 if (resultCode == RESULT_OK && data != null) {
                     if (data.getData() != null) {
                         Intent intent = new Intent(this, ImageEditingActivity.class);
-                        intent.putExtra("uri", data.getData().toString());
-                        intent.putExtra("imageCode", REQUEST_CODE_GALLERY);
+                        File file = createFileFromUri(data.getData(), "image");
+                        intent.putExtra("path", file.getPath());
+                        //   intent.putExtra("imageCode", REQUEST_CODE_GALLERY);
+                        Log.i("ConnectBase Data", data.getData().toString());
                         startActivityForResult(intent, REQUEST_CODE_IMAGE_EDITING);
-
-                        Log.i("Data", data.getData().toString());
 
 
                     } else if (data.getClipData() != null) {
 
-                        Log.i("Clip Data", data.getClipData().toString());
+                        Log.i("ConnectBase Clip Data", data.getClipData().toString());
 
                         ClipData clipData = data.getClipData();
                         ArrayList<Uri> uriList = new ArrayList<>();
@@ -276,17 +277,27 @@ public class ChatActivity extends AppCompatActivity {
                         }
 
                         if (uriList.size() == 1) {
-                            startActivityForResult(new Intent(this, ImageEditingActivity.class).putExtra("uri", uriList.get(0).toString()).putExtra("code", REQUEST_CODE_GALLERY), REQUEST_CODE_IMAGE_EDITING);
+
+                            Intent intent = new Intent(this, ImageEditingActivity.class);
+                            File file = createFileFromUri(uriList.get(0), "image");
+                            intent.putExtra("path", file.getPath());
+                            startActivityForResult(intent, REQUEST_CODE_IMAGE_EDITING);
+
                         } else {
                             Bundle bundle = new Bundle();
                             ArrayList<String> list = new ArrayList<>();
                             for (int i = 0; i < Math.min(20, uriList.size()); i++)
-                                list.add(uriList.get(i).toString());
-                            bundle.putStringArrayList("uriList", list);
+                                list.add(createFileFromUri(uriList.get(i), "image").getPath());
+                            bundle.putStringArrayList("pathList", list);
                             if (uriList.size() > 20) {
                                 Snackbar.make(chatList, "Loading first 20 images..", Snackbar.LENGTH_SHORT).show();
                             }
-                            startActivityForResult(new Intent(this, ViewImagesActivity.class).putExtra("bundle", bundle), REQUEST_CODE_VIEW_IMAGES);
+
+                            Intent intent = new Intent(this, ViewImagesActivity.class);
+
+                            intent.putExtra("bundle", bundle);
+                            startActivityForResult(intent, REQUEST_CODE_VIEW_IMAGES);
+
                         }
 
                     }
@@ -323,16 +334,29 @@ public class ChatActivity extends AppCompatActivity {
                 } else if (resultCode == RESULT_CANCELED) {
                     Snackbar.make(chatList, "Oops, Action Cancelled!!", Snackbar.LENGTH_SHORT).show();
                 }
+                break;
             case REQUEST_CODE_FILE:
                 if (resultCode == RESULT_OK) {
 
-                    if (data.getData() != null) {
-                        Log.i("ConnectBase FileUri", data.getData().toString());
-                        sendFileMessage(data.getData());
-                    } else if (data.getClipData() != null) {
-                        ClipData clipData = data.getClipData();
-                        for (int i = 0; i < clipData.getItemCount(); i++)
-                            sendFileMessage(clipData.getItemAt(i).getUri());
+                    Bundle bundle = new Bundle();
+                    ArrayList<String> pathList = new ArrayList<>();
+                    if (data != null) {
+                        if (data.getData() != null) {
+                            pathList.add(createFileFromUri(data.getData(), "file").getPath());
+                            Log.i("ConnectBase FileUri", data.getData().toString());
+                            //sendFileMessage(data.getData());
+                        } else if (data.getClipData() != null) {
+                            ClipData clipData = data.getClipData();
+                            for (int i = 0; i < clipData.getItemCount(); i++)
+                                pathList.add(createFileFromUri(clipData.getItemAt(i).getUri(), "file").getPath());
+                            //  sendFileMessage(clipData.getItemAt(i).getUri());
+                        }
+                        Intent intent = new Intent(this, ViewFilesActivity.class);
+                        bundle.putStringArrayList("pathList", pathList);
+                        intent.putExtra("bundle", bundle);
+                        startActivityForResult(intent, REQUEST_CODE_VIEW_FILES);
+                    } else {
+                        Snackbar.make(chatList, "Oops!!, There was some problem retrieving files.", Snackbar.LENGTH_SHORT).show();
                     }
 
 
@@ -340,12 +364,32 @@ public class ChatActivity extends AppCompatActivity {
 
                     Snackbar.make(chatList, "Oops, Action Cancelled!!", Snackbar.LENGTH_SHORT).show();
                 }
+                break;
+            case REQUEST_CODE_VIEW_FILES:
+
+                if (resultCode == RESULT_OK) {
+
+                    Bundle bundle = data.getBundleExtra("bundle");
+                    ArrayList<String> pathList, descList;
+                    pathList = bundle.getStringArrayList("pathList");
+                    descList = bundle.getStringArrayList("descList");
+                    for (int i = 0; i < pathList.size(); i++)
+                        sendFileMessage(pathList.get(i), descList.get(i));
+
+
+                } else if (resultCode == RESULT_CANCELED) {
+                    Snackbar.make(chatList, "Oops, Action Cancelled!!", Snackbar.LENGTH_SHORT).show();
+                }
+                break;
+
         }
     }
 
-    private void sendFileMessage(Uri uri) {
+    private void sendFileMessage(String path, String desc) {
 
-        Log.i("SendFile", uri.toString());
+        File file = new File(path);
+        Uri fileUri = getUriFromFile(file);
+        Log.i("SendFile", fileUri.toString());
         if (!checkInternetConnection()) {
             Snackbar.make(chatList, "No Internet Connection!!", Snackbar.LENGTH_SHORT).show();
             //TODO: Add queue of messages to send in future
@@ -358,14 +402,17 @@ public class ChatActivity extends AppCompatActivity {
             return;
         }
 
-        File file = createFileFromUri(uri);
+        if (!file.exists()) {
+            Snackbar.make(chatList, "File Not Found", Snackbar.LENGTH_SHORT).show();
+            return;
+        }
         Log.i("ConnectBase Path", file.getPath());
 
         HashMap hashMap = new HashMap();
 
         hashMap.put("sender", currentId);
         hashMap.put("messageType", "file");
-        hashMap.put("description", "");
+        hashMap.put("description", desc);
         hashMap.put("fileUrl", "");
         hashMap.put("status", "");
         hashMap.put("fileName", file.getName());
@@ -375,15 +422,16 @@ public class ChatActivity extends AppCompatActivity {
 
         String pushKey = mChatReference.child(chatId).push().getKey();
 
-        StorageReference fileReference = mChatFileReference.child(chatId).child(pushKey + file.getName().substring(file.getName().lastIndexOf(".") + 1));
+        StorageReference fileReference = mChatFileReference.child(chatId).child(pushKey);
 
         //TODO: add notification for progress of file uploading
 
-        fileReference.putFile(uri).addOnCompleteListener(task -> {
+        fileReference.putFile(fileUri).addOnCompleteListener(task -> {
             if (task.isSuccessful()) {
                 fileReference.getDownloadUrl().addOnSuccessListener(uri1 -> {
                     hashMap.put("fileUrl", uri1.toString());
                     mChatReference.child(chatId).child(pushKey).setValue(hashMap);
+                    sendFileToSentFolder(file, "file");
                     Snackbar.make(chatList, "Message Sent Successfully", Snackbar.LENGTH_SHORT).show();
                 });
             } else {
@@ -393,24 +441,40 @@ public class ChatActivity extends AppCompatActivity {
 
     }
 
-    private File createFileFromUri(Uri uri) {
+    private File createFileFromUri(Uri uri, String type) {
 
         try {
             InputStream inputStream = getContentResolver().openInputStream(uri);
-            File parentFile = new File(Environment.getExternalStorageDirectory() + "/ConnectBase/temp/Files");
+            File parentFile;
+            if (type.equals("file")) {
+                parentFile = new File(Environment.getExternalStorageDirectory() + "/ConnectBase/temp/Files/");
+            } else
+                parentFile = new File(Environment.getExternalStorageDirectory() + "/ConnectBase/temp/image/");
             parentFile.mkdirs();
-            String name = uri.toString();
 
-            name = name.replace("%20", "-");
-            name = name.replace("%2F", "/");
-            name = name.replace("%3A", "/");
-            name = name.replace("%2C", "");
-            name = name.substring(name.lastIndexOf("/") + 1);
+            String name = "";//= uri.toString();
+            Cursor cursor = getContentResolver().query(uri, null, null, null, null, null);
+            if (cursor != null) {
+                cursor.moveToFirst();
+                name = cursor.getString(cursor.getColumnIndex("_display_name"));
+                cursor.close();
+            } else {
+
+                name = uri.toString();
+                name = name.replace("%20", "-");
+                name = name.replace("%2F", "/");
+                name = name.replace("%3A", "/");
+                name = name.replace("%2C", "");
+                name = name.substring(name.lastIndexOf("/") + 1);
+                if (!name.contains(".") && uri.toString().contains("photo") || uri.toString().contains("image"))
+                    name += ".jpg";
+
+            }
 
             File file = new File(parentFile, name);
             //f.setWritable(true, false);
             OutputStream outputStream = new FileOutputStream(file);
-            byte buffer[] = new byte[1024];
+            byte buffer[] = new byte[1024 * 16];
             int length = 0;
 
             while ((length = inputStream.read(buffer)) > 0) {
@@ -489,7 +553,7 @@ public class ChatActivity extends AppCompatActivity {
                                 mChatReference.child(chatId).child(pushKey).setValue(hashMap);
                                 Snackbar.make(chatList, "Message Sent Successfully", Snackbar.LENGTH_SHORT).show();
                                 thumbFile.delete();
-                                sendFileToSentFolder(imageFile);
+                                sendFileToSentFolder(imageFile, "image");
 
                                 //TODO: Notify Adapter about dataset change
                             });
@@ -513,25 +577,29 @@ public class ChatActivity extends AppCompatActivity {
     }
 
 
-    private void sendFileToSentFolder(File imageFile) {
+    private void sendFileToSentFolder(File inputFile, String type) {
 
-        String path = "/ConnectBase/Media/Images/" + user.getName() + "\t\t" + id + "/sent";
+        String path;
+        if (type.equals("image"))
+            path = "/ConnectBase/Media/Images/" + user.getName() + "\t\t" + id + "/sent";
+        else
+            path = "/ConnectBase/Media/Files/" + user.getName() + "\t\t" + id + "/sent";
         File parentOutput = new File(Environment.getExternalStorageDirectory() + path);
         parentOutput.mkdirs();
-        File outputFile = new File(parentOutput, imageFile.getName());
+        File outputFile = new File(parentOutput, inputFile.getName());
         try {
 
-            InputStream in = new FileInputStream(imageFile);
+            InputStream in = new FileInputStream(inputFile);
             OutputStream out = new FileOutputStream(outputFile);
 
-            byte[] buffer = new byte[1024];
+            byte[] buffer = new byte[1024 * 16];
             int read;
             while ((read = in.read(buffer)) != -1) {
                 out.write(buffer, 0, read);
             }
             in.close();
             out.close();
-            imageFile.delete();
+            inputFile.delete();
         } catch (Exception e) {
             showErrorDialog(e.getMessage());
         }

@@ -1,7 +1,6 @@
 package com.example.connectbase;
 
 import android.content.Intent;
-import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.AsyncTask;
@@ -30,7 +29,7 @@ import id.zelory.compressor.Compressor;
 
 public class ViewImagesActivity extends AppCompatActivity {
 
-    ArrayList<Uri> uriList = new ArrayList<>();
+    ArrayList<String> pathList = new ArrayList<>();
     ArrayList<String> compressedPathList = new ArrayList<>();
     ArrayList<String> descList;
     RecyclerView recyclerView;
@@ -44,10 +43,9 @@ public class ViewImagesActivity extends AppCompatActivity {
 
         recyclerView = findViewById(R.id.list_viewImages);
         Bundle bundle = getIntent().getBundleExtra("bundle");
-        ArrayList<String> list = bundle.getStringArrayList("uriList");
+        pathList = bundle.getStringArrayList("pathList");
         descList = new ArrayList<>(20);
-        for (int i = 0; i < list.size(); i++) {
-            uriList.add(Uri.parse(list.get(i)));
+        for (int i = 0; i < pathList.size(); i++) {
             descList.add("");
         }
 
@@ -63,11 +61,11 @@ public class ViewImagesActivity extends AppCompatActivity {
 
     public void doneEditing(View view) {
 
-        ArrayList<String> pathList = new ArrayList<>(compressedPathList);
+        ArrayList<String> pathList2 = new ArrayList<>(compressedPathList);
 
         Intent intent = new Intent(this, ChatActivity.class);
         Bundle bundle = new Bundle();
-        bundle.putStringArrayList("pathList", pathList);
+        bundle.putStringArrayList("pathList", pathList2);
         bundle.putStringArrayList("descList", descList);
         intent.putExtra("bundle", bundle);
         setResult(RESULT_OK, intent);
@@ -75,15 +73,6 @@ public class ViewImagesActivity extends AppCompatActivity {
 
     }
 
-    /* private Uri getUriFromFile(File file) {
-
-         if (Build.VERSION.SDK_INT >= 24)
-             return FileProvider.getUriForFile(getApplicationContext(), getApplicationContext()
-                     .getPackageName() + ".provider", file);
-         else return Uri.fromFile(file);
-
-     }
- */
     File compressImage(File file) {
 
         try {
@@ -95,31 +84,13 @@ public class ViewImagesActivity extends AppCompatActivity {
                     .setCompressFormat(Bitmap.CompressFormat.JPEG)
                     .setMaxHeight(600)
                     .setMaxWidth(600)
-                    .setQuality(30)
+                    .setQuality(40)
                     .setDestinationDirectoryPath(Environment.getExternalStorageDirectory() + path)
                     .compressToFile(file);
         } catch (Exception e) {
             e.printStackTrace();
         }
         return null;
-    }
-
-    private String getRealPathFromUri(Uri uri) {
-        Log.i("ConnectBase BatchUri", uri.toString());
-        Log.i("ConnectBase BatchPath", uri.getPath());
-        Log.i("ConnectBase File Exist", String.valueOf(new File(uri.getPath()).exists()));
-        Cursor cursor = getContentResolver().query(uri, null, null, null, null, null);
-        if (cursor != null) {
-            cursor.moveToFirst();
-            int idx = cursor.getColumnIndex("_data");
-            if (idx < 0)
-                Log.i("ConnectBase", "Col not found");
-            else {
-                return cursor.getString(idx);
-            }
-        }
-        return uri.getPath();
-
     }
 
     @Override
@@ -153,10 +124,10 @@ public class ViewImagesActivity extends AppCompatActivity {
         @Override
         protected Void doInBackground(Void... voids) {
 
-            for (int i = 0; i < uriList.size(); i++) {
-                String path = getRealPathFromUri(uriList.get(i));
-                Log.i("ConnectBase Path", path);
-                compressedPathList.add(compressImage(new File(path)).getPath());
+            for (int i = 0; i < pathList.size(); i++) {
+                Log.i("ConnectBase Path", pathList.get(i));
+                compressedPathList.add(compressImage(new File(pathList.get(i))).getPath());
+                new File(pathList.get(i)).delete();
                 publishProgress();
             }
 
@@ -168,7 +139,6 @@ public class ViewImagesActivity extends AppCompatActivity {
             super.onProgressUpdate(voids);
 
             adapter.notifyDataSetChanged();
-
 
         }
     }
@@ -209,11 +179,16 @@ public class ViewImagesActivity extends AppCompatActivity {
                 builder.setTitle("Add Description");
 
                 ViewGroup.LayoutParams params = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+
+
+                LinearLayout linearLayout = new LinearLayout(ViewImagesActivity.this);
+                linearLayout.setLayoutParams(params);
+                linearLayout.setPadding(20, 20, 20, 10);
                 EditText editText = new EditText(ViewImagesActivity.this);
-                editText.setLayoutParams(params);
-                builder.setView(editText);
+                editText.setText(descList.get(pos).trim());
+                linearLayout.addView(editText, params);
+                builder.setView(linearLayout);
                 editText.setHint("Type Something..");
-                editText.setPadding(10, 0, 10, 0);
                 editText.setInputType(InputType.TYPE_TEXT_FLAG_MULTI_LINE);
                 builder.setCancelable(false);
                 builder.setNegativeButton("Cancel", null);

@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.support.annotation.NonNull;
@@ -13,6 +14,7 @@ import android.support.design.widget.Snackbar;
 import android.support.design.widget.TextInputEditText;
 import android.support.design.widget.TextInputLayout;
 import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.FileProvider;
 import android.support.v4.content.res.ResourcesCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
@@ -34,9 +36,9 @@ public class ImageEditingActivity extends AppCompatActivity {
     PhotoEditor mPhotoEditor;
     PhotoEditorView mPhotoEditorView;
     EditText etDesc;
-    Uri imageUri;
     int imageCode;
     String imagePath;
+    File imageFile;
     int rotation = 0;
 
     @Override
@@ -47,10 +49,15 @@ public class ImageEditingActivity extends AppCompatActivity {
 
 
         imageCode = getIntent().getIntExtra("imageCode", -1);
-        if (imageCode == ChatActivity.REQUEST_CODE_CAMERA)
-            imagePath = getIntent().getStringExtra("path");
-        imageUri = Uri.parse(getIntent().getStringExtra("uri"));
+        imagePath = getIntent().getStringExtra("path");
+        imageFile = new File(imagePath);
         etDesc = findViewById(R.id.et_imageEdit_desc);
+
+        if (imageFile.length() > 2 * 1024 * 1024L) {
+            File file = compressImage(imageFile, 1280, 720, 100);
+            imageFile.delete();
+            imageFile = file;
+        }
 
 
         mPhotoEditorView = findViewById(R.id.photoEditor_ImageEditing);
@@ -58,9 +65,18 @@ public class ImageEditingActivity extends AppCompatActivity {
                 .setPinchTextScalable(true)
                 .setDefaultTextTypeface(ResourcesCompat.getFont(this, R.font.dancing_script))
                 .build();
-        mPhotoEditorView.getSource().setImageURI(imageUri);
+        mPhotoEditorView.getSource().setImageURI(getUriFromFile(imageFile));
         mPhotoEditorView.getSource().setScaleType(ImageView.ScaleType.CENTER_CROP);
 
+
+    }
+
+    private Uri getUriFromFile(File file) {
+
+        if (Build.VERSION.SDK_INT >= 24)
+            return FileProvider.getUriForFile(getApplicationContext(), getApplicationContext()
+                    .getPackageName() + ".provider", file);
+        else return Uri.fromFile(file);
 
     }
 
@@ -81,11 +97,11 @@ public class ImageEditingActivity extends AppCompatActivity {
             TextInputLayout til = new TextInputLayout(this);
             ViewGroup.LayoutParams params = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
             til.setLayoutParams(params);
-            dialog.setView(til);
             TextInputEditText editText = new TextInputEditText(this);
             til.setPadding(20, 20, 20, 5);
             editText.setHint("Type Something..");
             til.addView(editText, params);
+            dialog.setView(til);
             dialog.setNegativeButton("Cancel", null);
             dialog.setPositiveButton("Ok", (dialog1, which) -> {
                 String text = til.getEditText().getText().toString().trim();
@@ -136,10 +152,10 @@ public class ImageEditingActivity extends AppCompatActivity {
             public void onSuccess(@NonNull String savedImagePath) {
                 dialog.dismiss();
 
-                if (imageCode == ChatActivity.REQUEST_CODE_CAMERA) {
-                    new File(imagePath).delete();
-                }
-                File compressedFile = compressImage(file);
+                //if (imageCode == ChatActivity.REQUEST_CODE_CAMERA) {
+                imageFile.delete();
+                //}
+                File compressedFile = compressImage(file, 600, 600, 35);
                 file.delete();
                 /*Uri uri;
                 if (Build.VERSION.SDK_INT >= 24)
@@ -165,7 +181,7 @@ public class ImageEditingActivity extends AppCompatActivity {
     }
 
 
-    File compressImage(File file) {
+    File compressImage(File file, int h, int w, int q) {
 
         try {
 
@@ -174,9 +190,9 @@ public class ImageEditingActivity extends AppCompatActivity {
 
             return new Compressor(this)
                     .setCompressFormat(Bitmap.CompressFormat.JPEG)
-                    .setMaxHeight(600)
-                    .setMaxWidth(600)
-                    .setQuality(35)
+                    .setMaxHeight(h)
+                    .setMaxWidth(w)
+                    .setQuality(q)
                     .setDestinationDirectoryPath(Environment.getExternalStorageDirectory() + path)
                     .compressToFile(file);
         } catch (Exception e) {
