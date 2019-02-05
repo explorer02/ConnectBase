@@ -2,7 +2,6 @@ package com.example.connectbase;
 
 import android.Manifest;
 import android.app.ProgressDialog;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
@@ -22,21 +21,16 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.google.android.gms.tasks.OnCompleteListener;
-import com.google.android.gms.tasks.Task;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ServerValue;
 import com.google.firebase.database.ValueEventListener;
-import com.google.firebase.storage.FileDownloadTask;
 import com.google.firebase.storage.FirebaseStorage;
-import com.google.firebase.storage.OnProgressListener;
 import com.google.firebase.storage.StorageReference;
 import com.like.LikeButton;
 import com.like.OnLikeListener;
-import com.squareup.picasso.Picasso;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -55,6 +49,7 @@ public class ViewUserProfile extends AppCompatActivity {
     TextView tvResume;
     StorageReference mResumeReference;
     ProgressDialog dialog;
+    CircleImageView ivProfilePic;
     
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -84,7 +79,7 @@ public class ViewUserProfile extends AppCompatActivity {
         arrayView.add( findViewById(R.id.tv_ViewUserProfile_experience));
         arrayView.add( findViewById(R.id.tv_ViewUserProfile_city));
         arrayView.add( findViewById(R.id.tv_ViewUserProfile_state));
-        CircleImageView ivProfilePic=findViewById(R.id.iv_ViewUserProfile_profilePic);
+        ivProfilePic = findViewById(R.id.iv_ViewUserProfile_profilePic);
         ivResume=findViewById(R.id.iv_ViewUserProfile_resume);
         tvResume=findViewById(R.id.tv_ViewUserProfile_resume);
 
@@ -117,12 +112,7 @@ public class ViewUserProfile extends AppCompatActivity {
                 AlertDialog.Builder dialog=new AlertDialog.Builder(ViewUserProfile.this);
                 dialog.setTitle("Remove from Bookmarks")
                         .setMessage("Are you sure you want to remove "+user.getName()+" from Bookmarks??")
-                        .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
-                            @Override
-                            public void onClick(DialogInterface dialog12, int which) {
-                                star.setLiked(true);
-                            }
-                        })
+                        .setNegativeButton("Cancel", (dialog12, which) -> star.setLiked(true))
                         .setPositiveButton("Ok", (dialog1, which) -> {
                             mBookmarkReference.child(currentId).child(uid).removeValue();
                         });
@@ -137,15 +127,26 @@ public class ViewUserProfile extends AppCompatActivity {
             File file=new File(location);
 
             if (file.exists()) {
-                Intent intent = new Intent(Intent.ACTION_VIEW);
-                intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_CLEAR_TOP);
-                Uri uri;
-                if (Build.VERSION.SDK_INT >= 24)
-                    uri = FileProvider.getUriForFile(getApplicationContext(), getApplicationContext()
-                            .getPackageName() + ".provider", file);
-                else uri = Uri.fromFile(file);
-                intent.setDataAndType(uri, "application/pdf");
-                startActivity(intent);
+                AlertDialog.Builder dialog = new AlertDialog.Builder(this);
+                dialog.setTitle("Select your Choice!!");
+                dialog.setMessage("This file exist in your device");
+                dialog.setNegativeButton("Re-Download", (dialog13, which) -> {
+                    downloadResume();
+                    ivResume.setClickable(false);
+                });
+                dialog.setPositiveButton("View", (dialog14, which) -> {
+                    Intent intent = new Intent(Intent.ACTION_VIEW);
+                    intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                    Uri uri;
+                    if (Build.VERSION.SDK_INT >= 24)
+                        uri = FileProvider.getUriForFile(getApplicationContext(), getApplicationContext()
+                                .getPackageName() + ".provider", file);
+                    else uri = Uri.fromFile(file);
+                    intent.setDataAndType(uri, "application/pdf");
+                    startActivity(intent);
+
+                });
+                dialog.show();
             }
 
             else {
@@ -217,124 +218,92 @@ public class ViewUserProfile extends AppCompatActivity {
             String type=btnSend.getTag().toString();
             if(type.equals("not_friend")){
 
-                mInviteReference.child(currentId).child(uid).child("request_type").setValue("request_sent").addOnCompleteListener(new OnCompleteListener<Void>() {
-                    @Override
-                    public void onComplete(@NonNull Task<Void> task) {
-                        if(task.isSuccessful()){
-                            mInviteReference.child(uid).child(currentId).child("request_type").setValue("request_received").addOnCompleteListener(new OnCompleteListener<Void>() {
-                                @Override
-                                public void onComplete(@NonNull Task<Void> task) {
-                                    if(task.isSuccessful()){
-                                        btnSend.setTag("request_sent");
-                                        btnSend.setClickable(true);
-                                        btnSend.setText("Cancel Invite");
-                                    }
-                                    else {
-                                        Toast.makeText(ViewUserProfile.this, task.getException().getMessage(), Toast.LENGTH_SHORT).show();
-                                        btnSend.setClickable(true);
-                                    }
-                                }
-                            });
-                        }
-                        else {
-                            Toast.makeText(ViewUserProfile.this, task.getException().getMessage(), Toast.LENGTH_SHORT).show();
-                            btnSend.setClickable(true);
-                        }
+                mInviteReference.child(currentId).child(uid).child("request_type").setValue("request_sent").addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        mInviteReference.child(uid).child(currentId).child("request_type").setValue("request_received").addOnCompleteListener(task1 -> {
+                            if (task1.isSuccessful()) {
+                                btnSend.setTag("request_sent");
+                                btnSend.setClickable(true);
+                                btnSend.setText("Cancel Invite");
+                            } else {
+                                Toast.makeText(ViewUserProfile.this, task1.getException().getMessage(), Toast.LENGTH_SHORT).show();
+                                btnSend.setClickable(true);
+                            }
+                        });
+                    } else {
+                        Toast.makeText(ViewUserProfile.this, task.getException().getMessage(), Toast.LENGTH_SHORT).show();
+                        btnSend.setClickable(true);
                     }
                 });
             }
             else if(type.equals("friend")){
 
-                mFriendReference.child(currentId).child(uid).removeValue().addOnCompleteListener(new OnCompleteListener<Void>() {
-                    @Override
-                    public void onComplete(@NonNull Task<Void> task) {
-                        if(task.isSuccessful()){
-                            mFriendReference.child(uid).child(currentId).removeValue().addOnCompleteListener(new OnCompleteListener<Void>() {
-                                @Override
-                                public void onComplete(@NonNull Task<Void> task) {
-                                    if(task.isSuccessful()){
-                                        btnSend.setTag("not_friend");
-                                        btnSend.setText("Send Invite");
-                                        ivResume.setVisibility(View.GONE);
-                                        btnSend.setClickable(true);
-                                    }
-                                    else {
-                                        Toast.makeText(ViewUserProfile.this, task.getException().getMessage(), Toast.LENGTH_SHORT).show();
-                                        btnSend.setClickable(true);
-                                    }
-                                }
-                            });
-                        }
-                        else {
-                            Toast.makeText(ViewUserProfile.this, task.getException().getMessage(), Toast.LENGTH_SHORT).show();
-                            btnSend.setClickable(true);
-                        }
+                mFriendReference.child(currentId).child(uid).removeValue().addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        mFriendReference.child(uid).child(currentId).removeValue().addOnCompleteListener(task12 -> {
+                            if (task12.isSuccessful()) {
+                                btnSend.setTag("not_friend");
+                                btnSend.setText("Send Invite");
+                                ivResume.setVisibility(View.GONE);
+                                btnSend.setClickable(true);
+                            } else {
+                                Toast.makeText(ViewUserProfile.this, task12.getException().getMessage(), Toast.LENGTH_SHORT).show();
+                                btnSend.setClickable(true);
+                            }
+                        });
+                    } else {
+                        Toast.makeText(ViewUserProfile.this, task.getException().getMessage(), Toast.LENGTH_SHORT).show();
+                        btnSend.setClickable(true);
                     }
                 });
 
             }
             else if(type.equals("request_sent")){
 
-                mInviteReference.child(currentId).child(uid).removeValue().addOnCompleteListener(new OnCompleteListener<Void>() {
-                    @Override
-                    public void onComplete(@NonNull Task<Void> task) {
+                mInviteReference.child(currentId).child(uid).removeValue().addOnCompleteListener(task -> {
 
-                        if (task.isSuccessful()){
-                            mInviteReference.child(uid).child(currentId).removeValue().addOnCompleteListener(new OnCompleteListener<Void>() {
-                                @Override
-                                public void onComplete(@NonNull Task<Void> task) {
+                    if (task.isSuccessful()) {
+                        mInviteReference.child(uid).child(currentId).removeValue().addOnCompleteListener(task13 -> {
 
-                                    if (task.isSuccessful()){
-                                        btnSend.setTag("not_friend");
-                                        btnSend.setText("Send Invite");
-                                        btnSend.setClickable(true);
-                                    }
-                                    else {
-                                        Toast.makeText(ViewUserProfile.this, task.getException().getMessage(), Toast.LENGTH_SHORT).show();
-                                        btnSend.setClickable(true);
-                                    }
-                                }
-                            });
-                        }
-                        else {
-                            Toast.makeText(ViewUserProfile.this, task.getException().getMessage(), Toast.LENGTH_SHORT).show();
-                            btnSend.setClickable(true);
-                        }
+                            if (task13.isSuccessful()) {
+                                btnSend.setTag("not_friend");
+                                btnSend.setText("Send Invite");
+                                btnSend.setClickable(true);
+                            } else {
+                                Toast.makeText(ViewUserProfile.this, task13.getException().getMessage(), Toast.LENGTH_SHORT).show();
+                                btnSend.setClickable(true);
+                            }
+                        });
+                    } else {
+                        Toast.makeText(ViewUserProfile.this, task.getException().getMessage(), Toast.LENGTH_SHORT).show();
+                        btnSend.setClickable(true);
                     }
                 });
 
             }
             else if(type.equals("request_received")){
 
-                mFriendReference.child(currentId).child(uid).child("time").setValue(ServerValue.TIMESTAMP).addOnCompleteListener(new OnCompleteListener<Void>() {
-                    @Override
-                    public void onComplete(@NonNull Task<Void> task) {
+                mFriendReference.child(currentId).child(uid).child("time").setValue(ServerValue.TIMESTAMP).addOnCompleteListener(task -> {
 
-                        if (task.isSuccessful()){
-                            mFriendReference.child(uid).child(currentId).child("since").setValue(ServerValue.TIMESTAMP).addOnCompleteListener(new OnCompleteListener<Void>() {
-                                @Override
-                                public void onComplete(@NonNull Task<Void> task) {
+                    if (task.isSuccessful()) {
+                        mFriendReference.child(uid).child(currentId).child("since").setValue(ServerValue.TIMESTAMP).addOnCompleteListener(task15 -> {
 
-                                    if (task.isSuccessful()){
-                                        btnSend.setTag("friend");
-                                        btnSend.setText("Remove from FriendList");
-                                        btnSend.setClickable(true);
-                                        btnReject.setVisibility(View.GONE);
-                                        mInviteReference.child(currentId).child(uid).removeValue();
-                                        mInviteReference.child(uid).child(currentId).removeValue();
-                                    }
-                                    else {
-                                        Toast.makeText(ViewUserProfile.this, task.getException().getMessage(), Toast.LENGTH_SHORT).show();
-                                        btnSend.setClickable(true);
-                                    }
+                            if (task15.isSuccessful()) {
+                                btnSend.setTag("friend");
+                                btnSend.setText("Remove from FriendList");
+                                btnSend.setClickable(true);
+                                btnReject.setVisibility(View.GONE);
+                                mInviteReference.child(currentId).child(uid).removeValue();
+                                mInviteReference.child(uid).child(currentId).removeValue();
+                            } else {
+                                Toast.makeText(ViewUserProfile.this, task15.getException().getMessage(), Toast.LENGTH_SHORT).show();
+                                btnSend.setClickable(true);
+                            }
 
-                                }
-                            });
-                        }
-                        else {
-                            Toast.makeText(ViewUserProfile.this, task.getException().getMessage(), Toast.LENGTH_SHORT).show();
-                            btnSend.setClickable(true);
-                        }
+                        });
+                    } else {
+                        Toast.makeText(ViewUserProfile.this, task.getException().getMessage(), Toast.LENGTH_SHORT).show();
+                        btnSend.setClickable(true);
                     }
                 });
 
@@ -344,42 +313,41 @@ public class ViewUserProfile extends AppCompatActivity {
 
         btnReject.setOnClickListener(v -> {
             btnReject.setClickable(false);
-            mInviteReference.child(currentId).child(uid).removeValue().addOnCompleteListener(new OnCompleteListener<Void>() {
-                @Override
-                public void onComplete(@NonNull Task<Void> task) {
+            mInviteReference.child(currentId).child(uid).removeValue().addOnCompleteListener(task -> {
 
-                    if (task.isSuccessful()){
-                        mInviteReference.child(uid).child(currentId).removeValue().addOnCompleteListener(new OnCompleteListener<Void>() {
-                            @Override
-                            public void onComplete(@NonNull Task<Void> task) {
+                if (task.isSuccessful()) {
+                    mInviteReference.child(uid).child(currentId).removeValue().addOnCompleteListener(task14 -> {
 
-                                if (task.isSuccessful()){
-                                    btnReject.setClickable(true);
-                                    btnReject.setVisibility(View.GONE);
-                                    btnSend.setTag("not_friend");
-                                    btnSend.setText("Send Invite");
-                                }
-                                else {
-                                    Toast.makeText(ViewUserProfile.this, task.getException().getMessage(), Toast.LENGTH_SHORT).show();
-                                    btnReject.setClickable(true);
-                                }
-                            }
-                        });
-                    }
-                    else {
-                        Toast.makeText(ViewUserProfile.this, task.getException().getMessage(), Toast.LENGTH_SHORT).show();
-                        btnReject.setClickable(true);
-                    }
+                        if (task14.isSuccessful()) {
+                            btnReject.setClickable(true);
+                            btnReject.setVisibility(View.GONE);
+                            btnSend.setTag("not_friend");
+                            btnSend.setText("Send Invite");
+                        } else {
+                            Toast.makeText(ViewUserProfile.this, task14.getException().getMessage(), Toast.LENGTH_SHORT).show();
+                            btnReject.setClickable(true);
+                        }
+                    });
+                } else {
+                    Toast.makeText(ViewUserProfile.this, task.getException().getMessage(), Toast.LENGTH_SHORT).show();
+                    btnReject.setClickable(true);
                 }
             });
 
         });
 
-        if(!user.getImage().isEmpty())
-            Picasso.get()
+        if (!user.getImage().trim().isEmpty()) {
+
+
+            new CommonFunctions().downloadProfilePic(getApplicationContext(), uid, ivProfilePic, user.getImage());
+
+            /*Picasso.get()
                     .load(user.getImage())
                     .placeholder(R.drawable.avatar)
                     .into(ivProfilePic);
+*/
+
+        }
         else ivProfilePic.setImageResource(R.drawable.avatar);
 
         arrayView.get(0).setText("Age:\t\t"+user.getAge());
@@ -404,6 +372,8 @@ public class ViewUserProfile extends AppCompatActivity {
             File parentFile = new File(Environment.getExternalStorageDirectory() + "/ConnectBase/Resume/");
             parentFile.mkdirs();
             final File file=new File(parentFile,uid+".pdf");
+            if (file.exists())
+                file.delete();
             showDialog("Downloading Resume", ProgressDialog.STYLE_HORIZONTAL);
             mResumeReference.child(uid + ".pdf").getFile(file).addOnCompleteListener(task -> {
                 if (task.isSuccessful()) {
@@ -416,12 +386,9 @@ public class ViewUserProfile extends AppCompatActivity {
                     Toast.makeText(ViewUserProfile.this, task.getException().getMessage(), Toast.LENGTH_SHORT);
                 }
 
-            }).addOnProgressListener(new OnProgressListener<FileDownloadTask.TaskSnapshot>() {
-                @Override
-                public void onProgress(FileDownloadTask.TaskSnapshot taskSnapshot) {
-                    dialog.setMax((int) (taskSnapshot.getTotalByteCount() / 100));
-                    dialog.setProgress((int) (taskSnapshot.getBytesTransferred() / 100));
-                }
+            }).addOnProgressListener(taskSnapshot -> {
+                dialog.setMax((int) (taskSnapshot.getTotalByteCount() / 100));
+                dialog.setProgress((int) (taskSnapshot.getBytesTransferred() / 100));
             });
 
 

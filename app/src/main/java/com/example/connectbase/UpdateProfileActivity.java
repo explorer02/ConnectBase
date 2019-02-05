@@ -5,7 +5,6 @@ import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Build;
@@ -313,7 +312,7 @@ public class UpdateProfileActivity extends AppCompatActivity {
                                 mUserReference.child(currentId).child("image").setValue(downloadLink).addOnSuccessListener(aVoid -> bitmapImageReference.putBytes(thumbByte).addOnSuccessListener(taskSnapshot -> bitmapImageReference.getDownloadUrl().addOnSuccessListener(uri1 -> mUserReference.child(currentId).child("thumbImage").setValue(uri1.toString()).addOnSuccessListener(aVoid1 -> {
                                     sendFileToProfilePicFolder(file);
 
-                                    File imageFile = new File(Environment.getExternalStorageDirectory() + "ConnectBase/ProfilePics/" + currentId + ".jpg");
+                                    File imageFile = new File(Environment.getExternalStorageDirectory() + "/ConnectBase/ProfilePics/" + currentId + ".jpg");
                                     if (imageFile.exists())
                                         ivProfilePic.setImageURI(getUriFromFile(imageFile));
 
@@ -431,39 +430,31 @@ public class UpdateProfileActivity extends AppCompatActivity {
     }
 
     private void sendFileToResumeFolder(Uri mainUri) {
+
         File parentFile = new File(Environment.getExternalStorageDirectory() + "/ConnectBase/Resume/");
         parentFile.mkdirs();
         final File outputFile = new File(parentFile, "resume.pdf");
-        String path = getRealPathFromUri(mainUri);
-        if (path == null) {
-            if (outputFile.exists())
-                outputFile.delete();
-            return;
-        }
-        File inputFile = new File(path);
+
         if (outputFile.exists())
             outputFile.delete();
 
         try {
 
-            InputStream in = new FileInputStream(inputFile);
+            InputStream in = getContentResolver().openInputStream(mainUri);
             OutputStream out = new FileOutputStream(outputFile);
 
-            byte[] buffer = new byte[1024];
+            byte[] buffer = new byte[1024 * 16];
             int read;
             while ((read = in.read(buffer)) != -1) {
                 out.write(buffer, 0, read);
             }
             in.close();
             out.close();
-            Log.i("ConnectBase Uri", getUriFromFile(outputFile).toString());
+            Log.i("ConnectBase ResumePath", outputFile.getPath());
         } catch (Exception e) {
             showErrorDialog(e.getMessage());
             Log.i("ConnectBase Uri", "Exception");
         }
-
-
-
     }
 
     void downloadResume(){
@@ -531,22 +522,6 @@ public class UpdateProfileActivity extends AppCompatActivity {
             return FileProvider.getUriForFile(getApplicationContext(), getApplicationContext()
                     .getPackageName() + ".provider", file);
         else return Uri.fromFile(file);
-
-    }
-
-    private String getRealPathFromUri(Uri uri) {
-
-        Cursor cursor = getContentResolver().query(uri, null, null, null, null, null);
-        if (cursor != null) {
-            cursor.moveToFirst();
-            int idx = cursor.getColumnIndex("_data");
-            if (idx < 0)
-                return null;
-            else {
-                return cursor.getString(idx);
-            }
-        }
-        return uri.getPath();
 
     }
 

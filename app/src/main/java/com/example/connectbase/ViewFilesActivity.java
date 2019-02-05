@@ -208,7 +208,9 @@ public class ViewFilesActivity extends AppCompatActivity {
 
                 //TODO: Check File name
 
-                name = name.substring(0, name.lastIndexOf("."));
+                if (name.contains("."))
+                    name = name.substring(0, name.lastIndexOf("."));
+
                 long fileSize = file.length();
                 String size = "";
                 fileSize /= 1024;

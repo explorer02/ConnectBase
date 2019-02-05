@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.Uri;
@@ -18,6 +19,8 @@ import android.support.annotation.Nullable;
 import android.support.design.widget.BottomSheetDialog;
 import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
+import android.support.v4.app.NotificationCompat;
+import android.support.v4.app.NotificationManagerCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.content.FileProvider;
 import android.support.v7.app.ActionBar;
@@ -44,6 +47,7 @@ import com.google.firebase.database.ServerValue;
 import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
+import com.google.firebase.storage.UploadTask;
 import com.squareup.picasso.Picasso;
 
 import java.io.File;
@@ -426,18 +430,49 @@ public class ChatActivity extends AppCompatActivity {
 
         //TODO: add notification for progress of file uploading
 
-        fileReference.putFile(fileUri).addOnCompleteListener(task -> {
+        UploadTask uploadTask = fileReference.putFile(fileUri);
+
+
+        //Notification for uploading files
+
+        int id = (int) new Date().getTime();
+        NotificationManagerCompat notificationManager = NotificationManagerCompat.from(this);
+
+        NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(this, ApplicationClass.NOTIFICATION_CHANNEL__UPLOAD);
+        notificationBuilder.setOngoing(true)
+                .setContentTitle("Uploading file...")
+                // .addAction()
+                .setCategory(NotificationCompat.CATEGORY_PROGRESS)
+                .setAutoCancel(false)
+                .setLargeIcon(BitmapFactory.decodeResource(getResources(), R.drawable.ic_upload))
+                .setSmallIcon(R.mipmap.ic_launcher)
+                .setProgress(100, 0, false);
+
+        uploadTask.addOnProgressListener(taskSnapshot -> {
+
+            int percent = (int) ((taskSnapshot.getBytesTransferred() * 1.0 / taskSnapshot.getTotalByteCount()) * 100);
+            Log.i("Progress", String.valueOf(percent));
+            notificationBuilder.setProgress(100, percent, false)
+                    .setContentText("Progress: " + percent + "%");
+            notificationManager.notify(id, notificationBuilder.build());
+
+        });
+
+
+        uploadTask.addOnCompleteListener(task -> {
             if (task.isSuccessful()) {
                 fileReference.getDownloadUrl().addOnSuccessListener(uri1 -> {
                     hashMap.put("fileUrl", uri1.toString());
                     mChatReference.child(chatId).child(pushKey).setValue(hashMap);
                     sendFileToSentFolder(file, "file");
                     Snackbar.make(chatList, "Message Sent Successfully", Snackbar.LENGTH_SHORT).show();
+                    notificationManager.cancel(id);
                 });
             } else {
                 Snackbar.make(chatList, task.getException().getMessage(), Snackbar.LENGTH_SHORT).show();
             }
         });
+
 
     }
 
@@ -457,6 +492,27 @@ public class ChatActivity extends AppCompatActivity {
             if (cursor != null) {
                 cursor.moveToFirst();
                 name = cursor.getString(cursor.getColumnIndex("_display_name"));
+
+                if (!name.contains(".")) {
+                    int typeidx = cursor.getColumnIndex("mime_type");
+                    if (typeidx > 0) {
+                        String extension = ".file";
+                        String mime_type = cursor.getString(typeidx);
+                        if (mime_type.contains("audio"))
+                            extension = ".mp3";
+                        else if (mime_type.contains("pdf"))
+                            extension = ".pdf";
+                        else if (mime_type.contains("video"))
+                            extension = ".mp4";
+                        name += extension;
+                    }
+                }
+
+              /*  for(int i=0;i<cursor.getColumnCount();i++)
+                {
+                    Log.i("ConnectBase Col",cursor.getColumnName(i));
+                    Log.i("ConnectBase Data",cursor.getString(i));
+                }*/
                 cursor.close();
             } else {
 
