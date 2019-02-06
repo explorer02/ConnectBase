@@ -1,11 +1,11 @@
 package com.example.connectbase;
 
 import android.content.Intent;
+import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.design.widget.BottomSheetBehavior;
 import android.support.v7.app.AppCompatActivity;
-import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
@@ -17,8 +17,7 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
-import com.google.android.gms.tasks.OnCompleteListener;
-import com.google.android.gms.tasks.Task;
+
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.ChildEventListener;
 import com.google.firebase.database.DataSnapshot;
@@ -31,6 +30,7 @@ import com.like.LikeButton;
 import com.like.OnLikeListener;
 import com.miguelcatalan.materialsearchview.MaterialSearchView;
 import com.squareup.picasso.Picasso;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -71,7 +71,7 @@ public class DiscoverPeopleActivity extends AppCompatActivity implements UserAda
         recyclerView = findViewById(R.id.rv_discover);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         recyclerView.setHasFixedSize(true);
-        adapter=new UserAdapter(this,userList,userKeyList);
+        adapter = new UserAdapter(this, userList);
         recyclerView.setAdapter(adapter);
 
         mUserReference = FirebaseDatabase.getInstance().getReference().child("Users");
@@ -169,13 +169,13 @@ public class DiscoverPeopleActivity extends AppCompatActivity implements UserAda
                     subUserkeyList.add(userKeyList.get(i));
                 }
             }
-            adapter=new UserAdapter(this,subUserList,subUserkeyList);
+            adapter = new UserAdapter(this, subUserList);
             recyclerView.setAdapter(adapter);
             listSelected=1;
         }
         else {
             listSelected = 0;
-            adapter=new UserAdapter(this,userList,userKeyList);
+            adapter = new UserAdapter(this, userList);
             recyclerView.setAdapter(adapter);
         }
     }
@@ -224,14 +224,14 @@ public class DiscoverPeopleActivity extends AppCompatActivity implements UserAda
         toolbar.setTitle(userArray.get(i).getName());
 
         ArrayList<TextView>arrayView=new ArrayList<>();
-        arrayView.add((TextView) findViewById(R.id.tv_fragSheet_age));
-        arrayView.add((TextView) findViewById(R.id.tv_fragSheet_qualification));
-        arrayView.add((TextView) findViewById(R.id.tv_fragSheet_organisation));
-        arrayView.add((TextView) findViewById(R.id.tv_fragSheet_position));
-        arrayView.add((TextView) findViewById(R.id.tv_fragSheet_skills));
-        arrayView.add((TextView) findViewById(R.id.tv_fragSheet_experience));
-        arrayView.add((TextView) findViewById(R.id.tv_fragSheet_city));
-        arrayView.add((TextView) findViewById(R.id.tv_fragSheet_state));
+        arrayView.add(findViewById(R.id.tv_fragSheet_age));
+        arrayView.add(findViewById(R.id.tv_fragSheet_qualification));
+        arrayView.add(findViewById(R.id.tv_fragSheet_organisation));
+        arrayView.add(findViewById(R.id.tv_fragSheet_position));
+        arrayView.add(findViewById(R.id.tv_fragSheet_skills));
+        arrayView.add(findViewById(R.id.tv_fragSheet_experience));
+        arrayView.add(findViewById(R.id.tv_fragSheet_city));
+        arrayView.add(findViewById(R.id.tv_fragSheet_state));
         CircleImageView ivProfilePic=findViewById(R.id.iv_fragSheet_profilePic);
         ImageView ivResume=findViewById(R.id.iv_fragSheet_resume);
         final LikeButton star=findViewById(R.id.star_fragSheet_bookmark);
@@ -328,174 +328,125 @@ public class DiscoverPeopleActivity extends AppCompatActivity implements UserAda
             }
         });
 
-        btnSend.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
+        btnSend.setOnClickListener(v -> {
 
-                btnSend.setClickable(false);
+            btnSend.setClickable(false);
 
-                String type=btnSend.getTag().toString();
-                if(type.equals("not_friend")){
+            String type = btnSend.getTag().toString();
+            if (type.equals("not_friend")) {
 
-                    mInviteReference.child(currentId).child(uid).child("request_type").setValue("request_sent").addOnCompleteListener(new OnCompleteListener<Void>() {
-                        @Override
-                        public void onComplete(@NonNull Task<Void> task) {
-                            if(task.isSuccessful()){
-                                mInviteReference.child(uid).child(currentId).child("request_type").setValue("request_received").addOnCompleteListener(new OnCompleteListener<Void>() {
-                                    @Override
-                                    public void onComplete(@NonNull Task<Void> task) {
-                                        if(task.isSuccessful()){
-                                            btnSend.setTag("request_sent");
-                                            btnSend.setClickable(true);
-                                            btnSend.setText("Cancel Invite");
-                                        }
-                                        else {
-                                            Toast.makeText(DiscoverPeopleActivity.this, task.getException().getMessage(), Toast.LENGTH_SHORT).show();
-                                            btnSend.setClickable(true);
-                                        }
-                                    }
-                                });
-                            }
-                            else {
-                                Toast.makeText(DiscoverPeopleActivity.this, task.getException().getMessage(), Toast.LENGTH_SHORT).show();
+                mInviteReference.child(currentId).child(uid).child("request_type").setValue("request_sent").addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        mInviteReference.child(uid).child(currentId).child("request_type").setValue("request_received").addOnCompleteListener(task1 -> {
+                            if (task1.isSuccessful()) {
+                                btnSend.setTag("request_sent");
+                                btnSend.setClickable(true);
+                                btnSend.setText("Cancel Invite");
+                            } else {
+                                Toast.makeText(DiscoverPeopleActivity.this, task1.getException().getMessage(), Toast.LENGTH_SHORT).show();
                                 btnSend.setClickable(true);
                             }
-                        }
-                    });
-                }
-                else if(type.equals("friend")){
+                        });
+                    } else {
+                        Toast.makeText(DiscoverPeopleActivity.this, task.getException().getMessage(), Toast.LENGTH_SHORT).show();
+                        btnSend.setClickable(true);
+                    }
+                });
+            } else if (type.equals("friend")) {
 
-                    mFriendReference.child(currentId).child(uid).removeValue().addOnCompleteListener(new OnCompleteListener<Void>() {
-                        @Override
-                        public void onComplete(@NonNull Task<Void> task) {
-                            if(task.isSuccessful()){
-                                mFriendReference.child(uid).child(currentId).removeValue().addOnCompleteListener(new OnCompleteListener<Void>() {
-                                    @Override
-                                    public void onComplete(@NonNull Task<Void> task) {
-                                        if(task.isSuccessful()){
-                                            btnSend.setTag("not_friend");
-                                            btnSend.setText("Send Invite");
-                                            btnSend.setClickable(true);
-                                        }
-                                        else {
-                                            Toast.makeText(DiscoverPeopleActivity.this, task.getException().getMessage(), Toast.LENGTH_SHORT).show();
-                                            btnSend.setClickable(true);
-                                        }
-                                    }
-                                });
-                            }
-                            else {
-                                Toast.makeText(DiscoverPeopleActivity.this, task.getException().getMessage(), Toast.LENGTH_SHORT).show();
+                mFriendReference.child(currentId).child(uid).removeValue().addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        mFriendReference.child(uid).child(currentId).removeValue().addOnCompleteListener(task12 -> {
+                            if (task12.isSuccessful()) {
+                                btnSend.setTag("not_friend");
+                                btnSend.setText("Send Invite");
+                                btnSend.setClickable(true);
+                            } else {
+                                Toast.makeText(DiscoverPeopleActivity.this, task12.getException().getMessage(), Toast.LENGTH_SHORT).show();
                                 btnSend.setClickable(true);
                             }
-                        }
-                    });
+                        });
+                    } else {
+                        Toast.makeText(DiscoverPeopleActivity.this, task.getException().getMessage(), Toast.LENGTH_SHORT).show();
+                        btnSend.setClickable(true);
+                    }
+                });
 
-                }
-                else if(type.equals("request_sent")){
+            } else if (type.equals("request_sent")) {
 
-                    mInviteReference.child(currentId).child(uid).removeValue().addOnCompleteListener(new OnCompleteListener<Void>() {
-                        @Override
-                        public void onComplete(@NonNull Task<Void> task) {
+                mInviteReference.child(currentId).child(uid).removeValue().addOnCompleteListener(task -> {
 
-                            if (task.isSuccessful()){
-                                mInviteReference.child(uid).child(currentId).removeValue().addOnCompleteListener(new OnCompleteListener<Void>() {
-                                    @Override
-                                    public void onComplete(@NonNull Task<Void> task) {
+                    if (task.isSuccessful()) {
+                        mInviteReference.child(uid).child(currentId).removeValue().addOnCompleteListener(task13 -> {
 
-                                        if (task.isSuccessful()){
-                                            btnSend.setTag("not_friend");
-                                            btnSend.setText("Send Invite");
-                                            btnSend.setClickable(true);
-                                        }
-                                        else {
-                                            Toast.makeText(DiscoverPeopleActivity.this, task.getException().getMessage(), Toast.LENGTH_SHORT).show();
-                                            btnSend.setClickable(true);
-                                        }
-                                    }
-                                });
-                            }
-                            else {
-                                Toast.makeText(DiscoverPeopleActivity.this, task.getException().getMessage(), Toast.LENGTH_SHORT).show();
+                            if (task13.isSuccessful()) {
+                                btnSend.setTag("not_friend");
+                                btnSend.setText("Send Invite");
+                                btnSend.setClickable(true);
+                            } else {
+                                Toast.makeText(DiscoverPeopleActivity.this, task13.getException().getMessage(), Toast.LENGTH_SHORT).show();
                                 btnSend.setClickable(true);
                             }
-                        }
-                    });
+                        });
+                    } else {
+                        Toast.makeText(DiscoverPeopleActivity.this, task.getException().getMessage(), Toast.LENGTH_SHORT).show();
+                        btnSend.setClickable(true);
+                    }
+                });
 
-                }
-                else if(type.equals("request_received")){
+            } else if (type.equals("request_received")) {
 
-                    mFriendReference.child(currentId).child(uid).child("time").setValue(ServerValue.TIMESTAMP).addOnCompleteListener(new OnCompleteListener<Void>() {
-                        @Override
-                        public void onComplete(@NonNull Task<Void> task) {
+                mFriendReference.child(currentId).child(uid).child("time").setValue(ServerValue.TIMESTAMP).addOnCompleteListener(task -> {
 
-                            if (task.isSuccessful()){
-                                mFriendReference.child(uid).child(currentId).child("since").setValue(ServerValue.TIMESTAMP).addOnCompleteListener(new OnCompleteListener<Void>() {
-                                    @Override
-                                    public void onComplete(@NonNull Task<Void> task) {
+                    if (task.isSuccessful()) {
+                        mFriendReference.child(uid).child(currentId).child("since").setValue(ServerValue.TIMESTAMP).addOnCompleteListener(task14 -> {
 
-                                        if (task.isSuccessful()){
-                                            btnSend.setTag("friend");
-                                            btnSend.setText("Remove from FriendList");
-                                            btnSend.setClickable(true);
-                                            btnReject.setVisibility(View.GONE);
-                                            mInviteReference.child(currentId).child(uid).removeValue();
-                                            mInviteReference.child(uid).child(currentId).removeValue();
-                                        }
-                                        else {
-                                            Toast.makeText(DiscoverPeopleActivity.this, task.getException().getMessage(), Toast.LENGTH_SHORT).show();
-                                            btnSend.setClickable(true);
-                                        }
-
-                                    }
-                                });
-                            }
-                            else {
-                                Toast.makeText(DiscoverPeopleActivity.this, task.getException().getMessage(), Toast.LENGTH_SHORT).show();
+                            if (task14.isSuccessful()) {
+                                btnSend.setTag("friend");
+                                btnSend.setText("Remove from FriendList");
+                                btnSend.setClickable(true);
+                                btnReject.setVisibility(View.GONE);
+                                mInviteReference.child(currentId).child(uid).removeValue();
+                                mInviteReference.child(uid).child(currentId).removeValue();
+                            } else {
+                                Toast.makeText(DiscoverPeopleActivity.this, task14.getException().getMessage(), Toast.LENGTH_SHORT).show();
                                 btnSend.setClickable(true);
                             }
-                        }
-                    });
 
-                }
-
-            }
-        });
-
-        btnReject.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                btnReject.setClickable(false);
-                mInviteReference.child(currentId).child(uid).removeValue().addOnCompleteListener(new OnCompleteListener<Void>() {
-                    @Override
-                    public void onComplete(@NonNull Task<Void> task) {
-
-                        if (task.isSuccessful()){
-                            mInviteReference.child(uid).child(currentId).removeValue().addOnCompleteListener(new OnCompleteListener<Void>() {
-                                @Override
-                                public void onComplete(@NonNull Task<Void> task) {
-
-                                    if (task.isSuccessful()){
-                                        btnReject.setClickable(true);
-                                        btnReject.setVisibility(View.GONE);
-                                        btnSend.setTag("not_friend");
-                                        btnSend.setText("Send Invite");
-                                    }
-                                    else {
-                                        Toast.makeText(DiscoverPeopleActivity.this, task.getException().getMessage(), Toast.LENGTH_SHORT).show();
-                                        btnReject.setClickable(true);
-                                    }
-                                }
-                            });
-                        }
-                        else {
-                            Toast.makeText(DiscoverPeopleActivity.this, task.getException().getMessage(), Toast.LENGTH_SHORT).show();
-                            btnReject.setClickable(true);
-                        }
+                        });
+                    } else {
+                        Toast.makeText(DiscoverPeopleActivity.this, task.getException().getMessage(), Toast.LENGTH_SHORT).show();
+                        btnSend.setClickable(true);
                     }
                 });
 
             }
+
+        });
+
+        btnReject.setOnClickListener(v -> {
+            btnReject.setClickable(false);
+            mInviteReference.child(currentId).child(uid).removeValue().addOnCompleteListener(task -> {
+
+                if (task.isSuccessful()) {
+                    mInviteReference.child(uid).child(currentId).removeValue().addOnCompleteListener(task15 -> {
+
+                        if (task15.isSuccessful()) {
+                            btnReject.setClickable(true);
+                            btnReject.setVisibility(View.GONE);
+                            btnSend.setTag("not_friend");
+                            btnSend.setText("Send Invite");
+                        } else {
+                            Toast.makeText(DiscoverPeopleActivity.this, task15.getException().getMessage(), Toast.LENGTH_SHORT).show();
+                            btnReject.setClickable(true);
+                        }
+                    });
+                } else {
+                    Toast.makeText(DiscoverPeopleActivity.this, task.getException().getMessage(), Toast.LENGTH_SHORT).show();
+                    btnReject.setClickable(true);
+                }
+            });
+
         });
 
             ivResume.setVisibility(View.GONE);

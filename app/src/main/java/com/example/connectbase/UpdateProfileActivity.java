@@ -1,13 +1,12 @@
 package com.example.connectbase;
 
 import android.Manifest;
-import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.support.annotation.NonNull;
@@ -15,7 +14,6 @@ import android.support.design.widget.Snackbar;
 import android.support.design.widget.TextInputLayout;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
-import android.support.v4.content.FileProvider;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
@@ -39,12 +37,14 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
+import de.hdodenhof.circleimageview.CircleImageView;
 import id.zelory.compressor.Compressor;
 
 public class UpdateProfileActivity extends AppCompatActivity {
@@ -58,8 +58,10 @@ public class UpdateProfileActivity extends AppCompatActivity {
     StorageReference mProfileImageReference,mResumeReference;
     final int REQUEST_CODE_PICK_RESUME=101,REQUEST_CODE_STORAGE_READ=201,REQUEST_CODE_STORAGE_WRITE=202;
     View relativeLayout;
-    ImageView ivCamera,ivProfilePic;
+    ImageView ivCamera;
+    CircleImageView ivProfilePic;
     Uri resumeUri;
+    CommonFunctions commonFunctions = new CommonFunctions();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -99,14 +101,16 @@ public class UpdateProfileActivity extends AppCompatActivity {
         this.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
         loadProfile();
 
-        ivCamera.setOnClickListener(v -> CropImage.activity()
-                .setGuidelines(CropImageView.Guidelines.ON)
-                .setMinCropWindowSize(300, 300)
-                .setOutputCompressQuality(80)
-                .setOutputCompressFormat(Bitmap.CompressFormat.JPEG)
-                .setAspectRatio(1, 1)
-                .setMaxZoom(5)
-                .start(UpdateProfileActivity.this));
+        ivCamera.setOnClickListener(v -> {
+            CropImage.activity()
+                    .setGuidelines(CropImageView.Guidelines.ON)
+                    .setMinCropWindowSize(300, 300)
+                    .setOutputCompressQuality(40)
+                    .setOutputCompressFormat(Bitmap.CompressFormat.JPEG)
+                    .setAspectRatio(1, 1)
+                    .setMaxZoom(5)
+                    .start(UpdateProfileActivity.this);
+        });
 
 
         btnUpdate.setOnClickListener(v -> {
@@ -121,8 +125,10 @@ public class UpdateProfileActivity extends AppCompatActivity {
             startActivityForResult(intent, REQUEST_CODE_PICK_RESUME);
         });
 
-        ivResume.setOnDragListener((v, event) -> false);
-
+        ivProfilePic.setOnClickListener(v -> {
+            String path = Environment.getExternalStorageDirectory() + "/ConnectBase/ProfilePics/" + currentId + ".jpg";
+            startActivity(new Intent(this, ZoomImageViewActivity.class).putExtra("path", path));
+        });
 
         ivResume.setOnClickListener(v -> {
             File parentFile = new File(Environment.getExternalStorageDirectory() + "/ConnectBase/Resume/");
@@ -133,7 +139,7 @@ public class UpdateProfileActivity extends AppCompatActivity {
             if (resumeFile.exists()) {
                         Intent intent = new Intent(Intent.ACTION_VIEW);
                         intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-                intent.setDataAndType(getUriFromFile(resumeFile), "application/pdf");
+                intent.setDataAndType(commonFunctions.getUriFromFile(getApplicationContext(), resumeFile), "application/pdf");
                         startActivity(intent);
                     }
 
@@ -195,16 +201,16 @@ public class UpdateProfileActivity extends AppCompatActivity {
                     File parentFile = new File(path);
                     parentFile.mkdirs();
                     File imageFile = new File(parentFile, currentId + ".jpg");
+                    Uri imageUri = commonFunctions.getUriFromFile(getApplicationContext(), imageFile);
 
                     if (imageFile.exists()) {
-                        Log.i("ConnectBase Uri", getUriFromFile(imageFile).toString());
-                        ivProfilePic.setImageURI(getUriFromFile(imageFile));
+                        ivProfilePic.setImageURI(imageUri);
                     } else {
 
                         Log.i("ConnectBase Else", "Here");
                         mProfileImageReference.child(currentId + ".jpg").getFile(imageFile).addOnCompleteListener(task -> {
                             if (task.isSuccessful()) {
-                                ivProfilePic.setImageURI(getUriFromFile(imageFile));
+                                ivProfilePic.setImageURI(imageUri);
                             } else {
                                 Snackbar.make(ivProfilePic, "Failed to load Image", Snackbar.LENGTH_SHORT).show();
                                 Log.i("ConnectBase", task.getException().getMessage());
@@ -225,7 +231,7 @@ public class UpdateProfileActivity extends AppCompatActivity {
             @Override
             public void onCancelled(@NonNull DatabaseError databaseError) {
                 dialog.dismiss();
-                showErrorDialog(databaseError.getMessage());
+                commonFunctions.showErrorDialog(UpdateProfileActivity.this, databaseError.getMessage());
 
             }
         });
@@ -267,7 +273,7 @@ public class UpdateProfileActivity extends AppCompatActivity {
             if (task.isSuccessful()) {
                 Snackbar.make(relativeLayout, "Profile Updated", Snackbar.LENGTH_SHORT).show();
             } else {
-                showErrorDialog(task.getException().getMessage());
+                commonFunctions.showErrorDialog(this, task.getException().getMessage());
             }
         });
 
@@ -283,84 +289,70 @@ public class UpdateProfileActivity extends AppCompatActivity {
             if (resultCode == RESULT_OK) {
                 try {
                     final Uri resultUri = result.getUri();
-                    btnUpdate.setPressed(true);
-                    final File file = new File(resultUri.getPath());
-                    Log.i("ConnectBase GetPath", file.getPath());
-                    final Bitmap bitmap = new Compressor(this)
-                            .setCompressFormat(Bitmap.CompressFormat.JPEG)
-                            .setMaxHeight(200)
-                            .setMaxWidth(200)
-                            .setQuality(50)
-                            .compressToBitmap(file);
+                    uploadProfilePic(resultUri);
 
-                    final ByteArrayOutputStream byteOutputStream=new ByteArrayOutputStream();
-                    bitmap.compress(Bitmap.CompressFormat.JPEG,90,byteOutputStream);
-                    final byte[]thumbByte=byteOutputStream.toByteArray();
-
-
-                    final StorageReference profileImageReference=mProfileImageReference.child(currentId+".jpg");
-                    final StorageReference bitmapImageReference=mProfileImageReference.child("ThumbImage").child(currentId+".jpg");
-                    showDialog("Uploading Image", ProgressDialog.STYLE_HORIZONTAL);
-
-
-                    profileImageReference.putFile(resultUri).addOnCompleteListener(task -> {
-
-                        if (task.isSuccessful()) {
-                            dialog.dismiss();
-                            profileImageReference.getDownloadUrl().addOnSuccessListener(uri -> {
-                                final String downloadLink = uri.toString();
-                                mUserReference.child(currentId).child("image").setValue(downloadLink).addOnSuccessListener(aVoid -> bitmapImageReference.putBytes(thumbByte).addOnSuccessListener(taskSnapshot -> bitmapImageReference.getDownloadUrl().addOnSuccessListener(uri1 -> mUserReference.child(currentId).child("thumbImage").setValue(uri1.toString()).addOnSuccessListener(aVoid1 -> {
-                                    sendFileToProfilePicFolder(file);
-
-                                    File imageFile = new File(Environment.getExternalStorageDirectory() + "/ConnectBase/ProfilePics/" + currentId + ".jpg");
-                                    if (imageFile.exists())
-                                        ivProfilePic.setImageURI(getUriFromFile(imageFile));
-
-                                    /*else
-                                    Picasso.get()
-                                            .load(downloadLink)
-                                            .placeholder(R.drawable.avatar)
-                                    .error(R.drawable.avatar)
-                                    .into(ivProfilePic);
-                                    */
-
-
-                                    Snackbar.make(relativeLayout, "Profile picture Updated", Snackbar.LENGTH_SHORT).show();
-                                }))));
-                            });
-                        } else {
-                            dialog.dismiss();
-                            showErrorDialog(task.getException().getMessage());
-                        }
-                    }).addOnProgressListener(taskSnapshot -> {
-                        dialog.setMax((int) (taskSnapshot.getTotalByteCount() / 100));
-                        dialog.setProgress((int) (taskSnapshot.getBytesTransferred() / 100));
-                    });
-
+                } catch (Exception e) {
+                    commonFunctions.showErrorDialog(this, e.getMessage());
                 }
-                catch (Exception e) {
-                    showErrorDialog(e.getMessage());
-                }
+            } else if (resultCode == CropImage.CROP_IMAGE_ACTIVITY_RESULT_ERROR_CODE) {
+                commonFunctions.showErrorDialog(this, result.getError().getMessage());
             }
-            else if (resultCode == CropImage.CROP_IMAGE_ACTIVITY_RESULT_ERROR_CODE) {
-                    showErrorDialog(result.getError().getMessage());
-                }
-            }
+        } else if (requestCode == REQUEST_CODE_PICK_RESUME && resultCode == RESULT_OK) {
 
-
-        else if(requestCode==REQUEST_CODE_PICK_RESUME&&resultCode==RESULT_OK) {
-
-            if (ContextCompat.checkSelfPermission(this,Manifest.permission.READ_EXTERNAL_STORAGE)!=PackageManager.PERMISSION_GRANTED) {
-                ActivityCompat.requestPermissions(this,new String[]{Manifest.permission.READ_EXTERNAL_STORAGE},REQUEST_CODE_STORAGE_READ);
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, REQUEST_CODE_STORAGE_READ);
 
             } else {
                 Uri uri = data.getData();
-                resumeUri=uri;
+                resumeUri = uri;
                 uploadResume(uri);
 
             }
         }
+    }
 
+    private void uploadProfilePic(Uri resultUri) throws IOException {
+
+        File file = new File(resultUri.getPath());
+
+        Bitmap bitmap = new Compressor(this)
+                .setCompressFormat(Bitmap.CompressFormat.JPEG)
+                .setMaxHeight(200)
+                .setMaxWidth(200)
+                .setQuality(50)
+                .compressToBitmap(file);
+
+        final ByteArrayOutputStream byteOutputStream = new ByteArrayOutputStream();
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 90, byteOutputStream);
+        final byte[] thumbByte = byteOutputStream.toByteArray();
+
+
+        final StorageReference profileImageReference = mProfileImageReference.child(currentId + ".jpg");
+        final StorageReference bitmapImageReference = mProfileImageReference.child("ThumbImage").child(currentId + ".jpg");
+        showDialog("Uploading Image", ProgressDialog.STYLE_HORIZONTAL);
+
+        profileImageReference.putFile(resultUri).addOnCompleteListener(task -> {
+
+            if (task.isSuccessful()) {
+                dialog.dismiss();
+                profileImageReference.getDownloadUrl().addOnSuccessListener(uri -> {
+                    final String downloadLink = uri.toString();
+                    mUserReference.child(currentId).child("image").setValue(downloadLink).addOnSuccessListener(aVoid -> bitmapImageReference.putBytes(thumbByte).addOnSuccessListener(taskSnapshot -> bitmapImageReference.getDownloadUrl().addOnSuccessListener(uri1 -> mUserReference.child(currentId).child("thumbImage").setValue(uri1.toString()).addOnSuccessListener(aVoid1 -> {
+                        sendFileToProfilePicFolder(file);
+                        String imagePath = Environment.getExternalStorageDirectory() + "/ConnectBase/ProfilePics/" + currentId + ".jpg";
+                        ivProfilePic.setImageBitmap(BitmapFactory.decodeFile(imagePath));
+
+                        Snackbar.make(relativeLayout, "Profile picture Updated", Snackbar.LENGTH_SHORT).show();
+                    }))));
+                });
+            } else {
+                dialog.dismiss();
+                commonFunctions.showErrorDialog(this, task.getException().getMessage());
+            }
+        }).addOnProgressListener(taskSnapshot -> {
+            dialog.setMax((int) (taskSnapshot.getTotalByteCount() / 1024));
+            dialog.setProgress((int) (taskSnapshot.getBytesTransferred() / 1024));
+        });
     }
 
     private void sendFileToProfilePicFolder(File imageFile) {
@@ -370,34 +362,16 @@ public class UpdateProfileActivity extends AppCompatActivity {
         File outputFile = new File(parentOutput, currentId + ".jpg");
         if (outputFile.exists())
             outputFile.delete();
-        Log.i("ConnectBase Uri", "Sending file");
-        try {
 
+        try {
             InputStream in = new FileInputStream(imageFile);
             OutputStream out = new FileOutputStream(outputFile);
-
-            byte[] buffer = new byte[1024];
-            int read;
-            while ((read = in.read(buffer)) != -1) {
-                out.write(buffer, 0, read);
-            }
-            in.close();
-            out.close();
+            commonFunctions.copyStream(in, out);
             imageFile.delete();
-            Log.i("ConnectBase Uri", getUriFromFile(outputFile).toString());
         } catch (Exception e) {
-            showErrorDialog(e.getMessage());
+            commonFunctions.showErrorDialog(this, e.getMessage());
             Log.i("ConnectBase Uri", "Exception");
         }
-    }
-
-
-    public void showErrorDialog(String message){
-        AlertDialog.Builder builder= new AlertDialog.Builder(this);
-                builder.setTitle("Oops!!")
-                .setMessage(message)
-                .setPositiveButton("Ok",null)
-                .show();
     }
 
     void uploadResume(final Uri mainUri){
@@ -419,12 +393,12 @@ public class UpdateProfileActivity extends AppCompatActivity {
                 });
             } else {
                 dialog.dismiss();
-                showErrorDialog(task.getException().getMessage());
+                commonFunctions.showErrorDialog(this, task.getException().getMessage());
             }
 
         }).addOnProgressListener(taskSnapshot -> {
-            dialog.setMax((int) (taskSnapshot.getTotalByteCount() / 1000));
-            dialog.setProgress((int) (taskSnapshot.getBytesTransferred() / 1000));
+            dialog.setMax((int) (taskSnapshot.getTotalByteCount() / 1024));
+            dialog.setProgress((int) (taskSnapshot.getBytesTransferred() / 1024));
         });
 
     }
@@ -442,17 +416,10 @@ public class UpdateProfileActivity extends AppCompatActivity {
 
             InputStream in = getContentResolver().openInputStream(mainUri);
             OutputStream out = new FileOutputStream(outputFile);
-
-            byte[] buffer = new byte[1024 * 16];
-            int read;
-            while ((read = in.read(buffer)) != -1) {
-                out.write(buffer, 0, read);
-            }
-            in.close();
-            out.close();
+            commonFunctions.copyStream(in, out);
             Log.i("ConnectBase ResumePath", outputFile.getPath());
         } catch (Exception e) {
-            showErrorDialog(e.getMessage());
+            commonFunctions.showErrorDialog(this, e.getMessage());
             Log.i("ConnectBase Uri", "Exception");
         }
     }
@@ -464,7 +431,6 @@ public class UpdateProfileActivity extends AppCompatActivity {
         }
         else {
             Snackbar.make(relativeLayout, "Downloading File from Server", Snackbar.LENGTH_SHORT).show();
-
 
             File parentFile = new File(Environment.getExternalStorageDirectory() + "/ConnectBase/Resume/");
             parentFile.mkdirs();
@@ -478,14 +444,13 @@ public class UpdateProfileActivity extends AppCompatActivity {
                 } else {
                     ivResume.setClickable(true);
                     dialog.dismiss();
-                    showErrorDialog(task.getException().getMessage());
+                    commonFunctions.showErrorDialog(this, task.getException().getMessage());
                 }
 
             }).addOnProgressListener(taskSnapshot -> {
-                dialog.setMax((int) (taskSnapshot.getTotalByteCount() / 100));
-                dialog.setProgress((int) (taskSnapshot.getBytesTransferred() / 100));
+                dialog.setMax((int) (taskSnapshot.getTotalByteCount() / 1024));
+                dialog.setProgress((int) (taskSnapshot.getBytesTransferred() / 1024));
                 });
-
 
         }
     }
@@ -515,16 +480,6 @@ public class UpdateProfileActivity extends AppCompatActivity {
                 break;
         }
     }
-
-    private Uri getUriFromFile(File file) {
-
-        if (Build.VERSION.SDK_INT >= 24)
-            return FileProvider.getUriForFile(getApplicationContext(), getApplicationContext()
-                    .getPackageName() + ".provider", file);
-        else return Uri.fromFile(file);
-
-    }
-
 }
 
 

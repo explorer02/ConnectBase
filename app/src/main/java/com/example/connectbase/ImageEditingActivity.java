@@ -4,9 +4,6 @@ import android.Manifest;
 import android.app.ProgressDialog;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.graphics.Bitmap;
-import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.support.annotation.NonNull;
@@ -14,7 +11,6 @@ import android.support.design.widget.Snackbar;
 import android.support.design.widget.TextInputEditText;
 import android.support.design.widget.TextInputLayout;
 import android.support.v4.app.ActivityCompat;
-import android.support.v4.content.FileProvider;
 import android.support.v4.content.res.ResourcesCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
@@ -27,7 +23,6 @@ import android.widget.LinearLayout;
 import java.io.File;
 import java.util.Date;
 
-import id.zelory.compressor.Compressor;
 import ja.burhanrashid52.photoeditor.PhotoEditor;
 import ja.burhanrashid52.photoeditor.PhotoEditorView;
 
@@ -40,6 +35,7 @@ public class ImageEditingActivity extends AppCompatActivity {
     String imagePath;
     File imageFile;
     int rotation = 0;
+    CommonFunctions commonFunctions = new CommonFunctions();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -54,7 +50,8 @@ public class ImageEditingActivity extends AppCompatActivity {
         etDesc = findViewById(R.id.et_imageEdit_desc);
 
         if (imageFile.length() > 2 * 1024 * 1024L) {
-            File file = compressImage(imageFile, 1280, 720, 100);
+            File file = commonFunctions.compressImage(this, imageFile, "/ConnectBase/temp/image/compress", 1280, 720, 100);
+
             imageFile.delete();
             imageFile = file;
         }
@@ -65,18 +62,9 @@ public class ImageEditingActivity extends AppCompatActivity {
                 .setPinchTextScalable(true)
                 .setDefaultTextTypeface(ResourcesCompat.getFont(this, R.font.dancing_script))
                 .build();
-        mPhotoEditorView.getSource().setImageURI(getUriFromFile(imageFile));
+        mPhotoEditorView.getSource().setImageURI(commonFunctions.getUriFromFile(getApplicationContext(), imageFile));
         mPhotoEditorView.getSource().setScaleType(ImageView.ScaleType.CENTER_CROP);
 
-
-    }
-
-    private Uri getUriFromFile(File file) {
-
-        if (Build.VERSION.SDK_INT >= 24)
-            return FileProvider.getUriForFile(getApplicationContext(), getApplicationContext()
-                    .getPackageName() + ".provider", file);
-        else return Uri.fromFile(file);
 
     }
 
@@ -152,17 +140,10 @@ public class ImageEditingActivity extends AppCompatActivity {
             public void onSuccess(@NonNull String savedImagePath) {
                 dialog.dismiss();
 
-                //if (imageCode == ChatActivity.REQUEST_CODE_CAMERA) {
                 imageFile.delete();
-                //}
-                File compressedFile = compressImage(file, 600, 600, 35);
+                File compressedFile = commonFunctions.compressImage(ImageEditingActivity.this, file, "/ConnectBase/temp/image/compress", 600, 600, 35);
                 file.delete();
-                /*Uri uri;
-                if (Build.VERSION.SDK_INT >= 24)
-                    uri = FileProvider.getUriForFile(getApplicationContext(), getApplicationContext()
-                            .getPackageName() + ".provider", compressedFile);
-                else uri = Uri.fromFile(compressedFile);
-*/
+
                 Intent intent = new Intent(ImageEditingActivity.this, ChatActivity.class);
                 Bundle bundle = new Bundle();
                 bundle.putString("desc", etDesc.getText().toString().trim());
@@ -180,26 +161,6 @@ public class ImageEditingActivity extends AppCompatActivity {
 
     }
 
-
-    File compressImage(File file, int h, int w, int q) {
-
-        try {
-
-            String path;
-            path = "/ConnectBase/temp/image/compress";
-
-            return new Compressor(this)
-                    .setCompressFormat(Bitmap.CompressFormat.JPEG)
-                    .setMaxHeight(h)
-                    .setMaxWidth(w)
-                    .setQuality(q)
-                    .setDestinationDirectoryPath(Environment.getExternalStorageDirectory() + path)
-                    .compressToFile(file);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return null;
-    }
 
 
     @Override

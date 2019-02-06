@@ -5,12 +5,8 @@ import android.content.ClipData;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
-import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
@@ -22,9 +18,7 @@ import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.app.NotificationManagerCompat;
 import android.support.v4.content.ContextCompat;
-import android.support.v4.content.FileProvider;
 import android.support.v7.app.ActionBar;
-import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
@@ -61,7 +55,6 @@ import java.util.Date;
 import java.util.HashMap;
 
 import de.hdodenhof.circleimageview.CircleImageView;
-import id.zelory.compressor.Compressor;
 
 public class ChatActivity extends AppCompatActivity {
 
@@ -81,6 +74,7 @@ public class ChatActivity extends AppCompatActivity {
     Uri cameraUri;
     File cameraFile;
     RecyclerView chatList;
+    CommonFunctions commonFunctions = new CommonFunctions();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -146,7 +140,7 @@ public class ChatActivity extends AppCompatActivity {
 
     public void sendMessage(View view) {
 
-        if (!checkInternetConnection()) {
+        if (!commonFunctions.checkInternetConnection(this)) {
 
             Snackbar.make(chatList, "No Internet Connection!!", Snackbar.LENGTH_SHORT).show();
             return;
@@ -201,7 +195,7 @@ public class ChatActivity extends AppCompatActivity {
             parentFile.mkdirs();
             File file = new File(parentFile, "IMG_" + new Date().getTime() + ".jpg");
             cameraFile = file;
-            cameraUri = getUriFromFile(file);
+            cameraUri = commonFunctions.getUriFromFile(getApplicationContext(), file);
 
             intent.putExtra(MediaStore.EXTRA_OUTPUT, cameraUri);
             intent.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION | Intent.FLAG_GRANT_READ_URI_PERMISSION);
@@ -226,16 +220,6 @@ public class ChatActivity extends AppCompatActivity {
             dialog.hide();
         });
 
-
-    }
-
-    private void showErrorDialog(String message) {
-        AlertDialog.Builder dialog = new AlertDialog.Builder(this);
-        dialog.setTitle("Oops!!");
-        dialog.setMessage(message);
-        dialog.setPositiveButton("Ok", null);
-        dialog.setCancelable(false);
-        dialog.show();
 
     }
 
@@ -392,9 +376,9 @@ public class ChatActivity extends AppCompatActivity {
     private void sendFileMessage(String path, String desc) {
 
         File file = new File(path);
-        Uri fileUri = getUriFromFile(file);
+        Uri fileUri = commonFunctions.getUriFromFile(getApplicationContext(), file);
         Log.i("SendFile", fileUri.toString());
-        if (!checkInternetConnection()) {
+        if (!commonFunctions.checkInternetConnection(this)) {
             Snackbar.make(chatList, "No Internet Connection!!", Snackbar.LENGTH_SHORT).show();
             //TODO: Add queue of messages to send in future
             return;
@@ -530,16 +514,8 @@ public class ChatActivity extends AppCompatActivity {
             File file = new File(parentFile, name);
             //f.setWritable(true, false);
             OutputStream outputStream = new FileOutputStream(file);
-            byte buffer[] = new byte[1024 * 16];
-            int length = 0;
 
-            while ((length = inputStream.read(buffer)) > 0) {
-                outputStream.write(buffer, 0, length);
-            }
-
-            outputStream.close();
-            inputStream.close();
-
+            commonFunctions.copyStream(inputStream, outputStream);
             return file;
         } catch (IOException e) {
             System.out.println("error in creating a file");
@@ -553,7 +529,7 @@ public class ChatActivity extends AppCompatActivity {
     private void sendImageMessage(String desc, String path) {
 
         Log.i("SendImageFile", path);
-        if (!checkInternetConnection()) {
+        if (!commonFunctions.checkInternetConnection(this)) {
             Snackbar.make(chatList, "No Internet Connection!!", Snackbar.LENGTH_SHORT).show();
             new File(path).delete();
             //TODO: Add queue of messages to send in future
@@ -586,19 +562,19 @@ public class ChatActivity extends AppCompatActivity {
         hashMap.put("seen", "false");
 
         String pushKey = mChatReference.child(chatId).push().getKey();
-        File thumbFile = compressImage(imageFile);
+        File thumbFile = commonFunctions.compressImage(this, imageFile, "/ConnectBase/temp/thumbImage", 250, 250, 25);
 
 
-        StorageReference imageReference = mChatImageReference.child(pushKey + ".jpg");
-        StorageReference thumbImageReference = mChatImageReference.child("ThumbImage").child(pushKey + ".jpg");
+        StorageReference imageReference = mChatImageReference.child(chatId).child(pushKey + ".jpg");
+        StorageReference thumbImageReference = mChatImageReference.child(chatId).child("ThumbImage").child(pushKey + ".jpg");
 
-        Uri thumbImageUri = getUriFromFile(thumbFile);
+        Uri thumbImageUri = commonFunctions.getUriFromFile(getApplicationContext(), thumbFile);
 
 
         //TODO: add notification for progress of image uploading
 
 
-        imageReference.putFile(getUriFromFile(imageFile)).addOnCompleteListener(task -> {
+        imageReference.putFile(commonFunctions.getUriFromFile(getApplicationContext(), imageFile)).addOnCompleteListener(task -> {
             if (task.isSuccessful()) {
                 imageReference.getDownloadUrl().addOnSuccessListener(uri -> {
                     hashMap.put("imageUrl", uri.toString());
@@ -613,22 +589,14 @@ public class ChatActivity extends AppCompatActivity {
 
                                 //TODO: Notify Adapter about dataset change
                             });
-                        } else showErrorDialog(task1.getException().getMessage());
+                        } else
+                            commonFunctions.showErrorDialog(this, task1.getException().getMessage());
                     });
                 });
-            } else showErrorDialog(task.getException().getMessage());
+            } else commonFunctions.showErrorDialog(this, task.getException().getMessage());
 
         });
 
-
-    }
-
-    private Uri getUriFromFile(File file) {
-
-        if (Build.VERSION.SDK_INT >= 24)
-            return FileProvider.getUriForFile(getApplicationContext(), getApplicationContext()
-                    .getPackageName() + ".provider", file);
-        else return Uri.fromFile(file);
 
     }
 
@@ -648,37 +616,12 @@ public class ChatActivity extends AppCompatActivity {
             InputStream in = new FileInputStream(inputFile);
             OutputStream out = new FileOutputStream(outputFile);
 
-            byte[] buffer = new byte[1024 * 16];
-            int read;
-            while ((read = in.read(buffer)) != -1) {
-                out.write(buffer, 0, read);
-            }
-            in.close();
-            out.close();
+            commonFunctions.copyStream(in, out);
             inputFile.delete();
         } catch (Exception e) {
-            showErrorDialog(e.getMessage());
+            commonFunctions.showErrorDialog(this, e.getMessage());
         }
 
-    }
-
-    File compressImage(File file) {
-
-        try {
-
-            String path = "/ConnectBase/temp/thumbImage";
-
-            return new Compressor(this)
-                    .setCompressFormat(Bitmap.CompressFormat.JPEG)
-                    .setMaxHeight(250)
-                    .setMaxWidth(250)
-                    .setQuality(25)
-                    .setDestinationDirectoryPath(Environment.getExternalStorageDirectory() + path)
-                    .compressToFile(file);
-        } catch (Exception e) {
-            showErrorDialog(e.getMessage());
-        }
-        return null;
     }
 
 
@@ -706,15 +649,6 @@ public class ChatActivity extends AppCompatActivity {
         startActivity(intent);
     }
 
-    private boolean checkInternetConnection() {
-
-        ConnectivityManager connectivityManager = (ConnectivityManager) getSystemService(CONNECTIVITY_SERVICE);
-
-        NetworkInfo networkInfo = connectivityManager.getActiveNetworkInfo();
-
-        return networkInfo != null;
-    }
-
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
@@ -725,7 +659,7 @@ public class ChatActivity extends AppCompatActivity {
 
                 } else {
                     String message = "Reading and writing External Storage is required for Sending attachments";
-                    showErrorDialog(message);
+                    commonFunctions.showErrorDialog(this, message);
                 }
                 break;
         }

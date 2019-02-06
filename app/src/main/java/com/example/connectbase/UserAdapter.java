@@ -17,9 +17,7 @@ import de.hdodenhof.circleimageview.CircleImageView;
 
 public class UserAdapter extends RecyclerView.Adapter<UserAdapter.ViewHolder> {
 
-    ArrayList<String>userKeys=new ArrayList<>();
-    ArrayList<Users>userList=new ArrayList<>();
-
+    private ArrayList<Users> userList;
 
 
     interface onclickItem{
@@ -28,9 +26,8 @@ public class UserAdapter extends RecyclerView.Adapter<UserAdapter.ViewHolder> {
     }
     onclickItem activity;
 
-    public UserAdapter(Context context,ArrayList<Users>users,ArrayList<String>keys){
+    public UserAdapter(Context context, ArrayList<Users> users) {
         activity=(onclickItem)context;
-        userKeys=keys;
         userList=users;
     }
 
@@ -67,12 +64,7 @@ public class UserAdapter extends RecyclerView.Adapter<UserAdapter.ViewHolder> {
                 .load(userList.get(i).getThumbImage())
                 .into(viewHolder.ivPhoto);
 
-        viewHolder.itemView.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                    activity.onItemClicked(i);
-            }
-        });
+        viewHolder.itemView.setOnClickListener(v -> activity.onItemClicked(i));
 
     }
 

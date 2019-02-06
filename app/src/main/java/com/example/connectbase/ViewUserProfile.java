@@ -338,14 +338,8 @@ public class ViewUserProfile extends AppCompatActivity {
 
         if (!user.getImage().trim().isEmpty()) {
 
-
             new CommonFunctions().downloadProfilePic(getApplicationContext(), uid, ivProfilePic, user.getImage());
 
-            /*Picasso.get()
-                    .load(user.getImage())
-                    .placeholder(R.drawable.avatar)
-                    .into(ivProfilePic);
-*/
 
         }
         else ivProfilePic.setImageResource(R.drawable.avatar);
@@ -387,8 +381,8 @@ public class ViewUserProfile extends AppCompatActivity {
                 }
 
             }).addOnProgressListener(taskSnapshot -> {
-                dialog.setMax((int) (taskSnapshot.getTotalByteCount() / 100));
-                dialog.setProgress((int) (taskSnapshot.getBytesTransferred() / 100));
+                dialog.setMax((int) (taskSnapshot.getTotalByteCount() / 1024));
+                dialog.setProgress((int) (taskSnapshot.getBytesTransferred() / 1024));
             });
 
 

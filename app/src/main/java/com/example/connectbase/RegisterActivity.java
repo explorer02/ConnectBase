@@ -5,12 +5,11 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.support.annotation.NonNull;
 import android.support.design.widget.TextInputLayout;
-import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
-import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.DatabaseReference;
@@ -27,6 +26,7 @@ public class RegisterActivity extends AppCompatActivity {
     ProSwipeButton swipeRegister;
     FirebaseAuth mAuth;
     DatabaseReference mUserReference;
+    CommonFunctions commonFunctions = new CommonFunctions();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -42,12 +42,7 @@ public class RegisterActivity extends AppCompatActivity {
         tilPass=findViewById(R.id.til_reg_pass);
         tilName=findViewById(R.id.til_reg_name);
         swipeRegister=findViewById(R.id.swipe_reg_register);
-        swipeRegister.setOnSwipeListener(new ProSwipeButton.OnSwipeListener() {
-            @Override
-            public void onSwipeConfirm() {
-                createAccount();
-            }
-        });
+        swipeRegister.setOnSwipeListener(() -> createAccount());
 
 
 
@@ -99,65 +94,51 @@ public class RegisterActivity extends AppCompatActivity {
     private void createUserOnFirebase(final String email, String pass) {
 
         mAuth.createUserWithEmailAndPassword(email, pass)
-                .addOnCompleteListener(this, new OnCompleteListener<AuthResult>() {
-                    @Override
-                    public void onComplete(@NonNull Task<AuthResult> task) {
-                        if (task.isSuccessful()) {
+                .addOnCompleteListener(this, task -> {
+                    if (task.isSuccessful()) {
 
-                            FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
-                            String uid = currentUser.getUid();
+                        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+                        String uid = currentUser.getUid();
 
-                            mUserReference = FirebaseDatabase.getInstance().getReference().child("Users").child(uid);
-                            Map hashMap = new HashMap<>();
-                            hashMap.put("name", tilName.getEditText().getText().toString().trim());
-                            hashMap.put("age","");
-                            hashMap.put("organisation", "");
-                            hashMap.put("position", "");
-                            hashMap.put("skills","");
-                            hashMap.put("experience","");
-                            hashMap.put("qualification","");
-                            hashMap.put("image", "");
-                            hashMap.put("thumbImage", "");
-                            hashMap.put("mobile","");
-                            hashMap.put("email",email);
-                            hashMap.put("city","");
-                            hashMap.put("state","");
-                            hashMap.put("resume","");
+                        mUserReference = FirebaseDatabase.getInstance().getReference().child("Users").child(uid);
+                        Map hashMap = new HashMap<>();
+                        hashMap.put("name", tilName.getEditText().getText().toString().trim());
+                        hashMap.put("age", "");
+                        hashMap.put("organisation", "");
+                        hashMap.put("position", "");
+                        hashMap.put("skills", "");
+                        hashMap.put("experience", "");
+                        hashMap.put("qualification", "");
+                        hashMap.put("image", "");
+                        hashMap.put("thumbImage", "");
+                        hashMap.put("mobile", "");
+                        hashMap.put("email", email);
+                        hashMap.put("city", "");
+                        hashMap.put("state", "");
+                        hashMap.put("resume", "");
 
 
-                            mUserReference.setValue(hashMap).addOnCompleteListener(new OnCompleteListener<Void>() {
-                                @Override
-                                public void onComplete(@NonNull Task<Void> task) {
-                                    if (task.isSuccessful()) {
-                                        setButton(true);
+                        mUserReference.setValue(hashMap).addOnCompleteListener(new OnCompleteListener<Void>() {
+                            @Override
+                            public void onComplete(@NonNull Task<Void> task) {
+                                if (task.isSuccessful()) {
+                                    setButton(true);
 
-                                        startActivity(new Intent(getApplicationContext(), MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK));
-                                            finish();
+                                    startActivity(new Intent(getApplicationContext(), MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK));
+                                    finish();
 
-                                    }
-                                    else {
+                                } else {
 
-                                        showErrorDialog(task.getException().getMessage());
+                                    commonFunctions.showErrorDialog(RegisterActivity.this, task.getException().getMessage());
 
-                                    }
                                 }
-                            });
-                        }
-                        else {
-                            showErrorDialog(task.getException().getMessage());
-                            setButton(false);
-                        }
+                            }
+                        });
+                    } else {
+                        commonFunctions.showErrorDialog(RegisterActivity.this, task.getException().getMessage());
+                        setButton(false);
                     }
                 });
     }
-
-    private void showErrorDialog(String message){
-        AlertDialog.Builder dialog=new AlertDialog.Builder(this);
-        dialog.setTitle("Oops!!");
-        dialog.setMessage(message);
-        dialog.setPositiveButton("Ok",null);
-        dialog.show();
-    }
-
 
 }

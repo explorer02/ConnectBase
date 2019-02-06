@@ -2,13 +2,10 @@ package com.example.connectbase;
 
 import android.content.Intent;
 import android.graphics.Bitmap;
-import android.net.Uri;
 import android.os.AsyncTask;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.support.annotation.NonNull;
-import android.support.v4.content.FileProvider;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.GridLayoutManager;
@@ -34,6 +31,7 @@ public class ViewImagesActivity extends AppCompatActivity {
     ArrayList<String> descList;
     RecyclerView recyclerView;
     Adapter adapter;
+    CommonFunctions commonFunctions = new CommonFunctions();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -110,15 +108,6 @@ public class ViewImagesActivity extends AppCompatActivity {
         builder.show();
     }
 
-    private Uri getUriFromFile(File file) {
-
-        if (Build.VERSION.SDK_INT >= 24)
-            return FileProvider.getUriForFile(getApplicationContext(), getApplicationContext()
-                    .getPackageName() + ".provider", file);
-        else return Uri.fromFile(file);
-
-    }
-
     public class LoadImages extends AsyncTask<Void, Void, Void> {
 
         @Override
@@ -159,7 +148,7 @@ public class ViewImagesActivity extends AppCompatActivity {
 
         @Override
         public void onBindViewHolder(@NonNull ViewHolder viewHolder, int i) {
-            viewHolder.ivPic.setImageURI(getUriFromFile(new File(compressedPathList.get(i))));
+            viewHolder.ivPic.setImageURI(commonFunctions.getUriFromFile(getApplicationContext(), new File(compressedPathList.get(i))));
             int pos = viewHolder.getAdapterPosition();
 
             viewHolder.ivDelete.setOnClickListener(v -> {
