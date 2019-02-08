@@ -2,17 +2,21 @@ package com.example.connectbase;
 
 public class ChatFile {
 
-    private String sender, messageType, description, fileUrl, status, filename, time, seen;
+    private String sender, messageType, description, fileUrl, status, fileName, seen;
+    private long time;
+
+    public ChatFile() {
+    }
 
 
-    public ChatFile(String sender, String messageType, String description, String file, String time, String status, String filename, String seen) {
+    public ChatFile(String sender, String messageType, String description, String file, long time, String status, String filename, String seen) {
         this.sender = sender;
         this.messageType = messageType;
         this.description = description;
         this.fileUrl = file;
         this.time = time;
         this.status = status;
-        this.filename = filename;
+        this.fileName = filename;
         this.seen = seen;
     }
 
@@ -48,11 +52,11 @@ public class ChatFile {
         this.fileUrl = fileUrl;
     }
 
-    public String getTime() {
+    public long getTime() {
         return time;
     }
 
-    public void setTime(String time) {
+    public void setTime(long time) {
         this.time = time;
     }
 
@@ -64,12 +68,12 @@ public class ChatFile {
         this.status = status;
     }
 
-    public String getFilename() {
-        return filename;
+    public String getFileName() {
+        return fileName;
     }
 
-    public void setFilename(String filename) {
-        this.filename = filename;
+    public void setFileName(String fileName) {
+        this.fileName = fileName;
     }
 
     public String getSeen() {

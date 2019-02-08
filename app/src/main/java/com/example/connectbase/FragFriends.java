@@ -131,6 +131,8 @@ public class FragFriends extends Fragment {
                     }
                 });
 
+                mUserReference.keepSynced(true);
+
 
                 holder.itemView.setOnClickListener(v -> showMenu(id, holder.itemView.getContext()));
     }
@@ -144,6 +146,9 @@ public class FragFriends extends Fragment {
                 return new FragFriends.ViewHolder(view);
             }
         };
+
+        mFriendReference.keepSynced(true);
+
         friendList.setAdapter(adapter);
         adapter.startListening();
 

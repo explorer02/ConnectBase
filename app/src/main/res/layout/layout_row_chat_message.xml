@@ -1,9 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="wrap_content"
+    android:layout_width="match_parent"
     android:id="@+id/linLay_lRCM"
     android:layout_height="wrap_content"
-    android:padding="10dp"
+    android:paddingStart="5dp"
+    android:paddingEnd="2dp"
+
     android:orientation="vertical">
 
     <TextView
@@ -11,12 +13,23 @@
         android:layout_height="wrap_content"
         android:id="@+id/tv_lRCM_name"
         android:text="Name"
-        android:textColor="@color/colorPrimary" />
+        android:paddingStart="10dp"
+        android:paddingEnd="10dp"
+        android:textColor="@color/colorAccent" />
 
     <LinearLayout
-        android:layout_width="match_parent"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+
+        <LinearLayout
+            android:layout_width="wrap_content"
         android:orientation="horizontal"
-        android:padding="10dp"
+            android:paddingStart="10dp"
+            android:paddingTop="2dp"
+            android:paddingEnd="5dp"
+            android:paddingBottom="2dp"
         android:background="@drawable/layout_chat_background_message_orange"
         android:layout_height="wrap_content">
 
@@ -26,12 +39,14 @@
             android:id="@+id/tv_lRCM_message"
             android:layout_height="wrap_content"
             android:maxWidth="200dp"
+            android:textSize="14sp"
             android:text="messages..........."
             android:textColor="@color/colorWhite" />
 
         <ImageView
             android:layout_width="24dp"
             android:id="@+id/iv_LRCM_more"
+            android:layout_marginStart="5dp"
             android:src="@drawable/ic_more"
             android:layout_height="24dp" />
     </LinearLayout>
@@ -43,5 +58,8 @@
         android:layout_height="wrap_content"
         android:text="Time"
         android:gravity="right"
+        android:textSize="12sp"
         android:textColor="@color/colorPrimary" />
+    </LinearLayout>
+
 </LinearLayout>

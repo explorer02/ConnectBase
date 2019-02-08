@@ -19,6 +19,8 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
 
 import id.zelory.compressor.Compressor;
 
@@ -121,6 +123,21 @@ class CommonFunctions {
         dialog.setCancelable(false);
         dialog.show();
 
+    }
+
+    String convertTime(long milliSec, boolean small) {
+
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTimeInMillis(milliSec);
+        /*calendar.add(Calendar.HOUR,5);
+        calendar.add(Calendar.MINUTE,30);
+*/
+        SimpleDateFormat dateFormat;
+        if (small)
+            dateFormat = new SimpleDateFormat("hh:mm a");
+        else dateFormat = new SimpleDateFormat("dd-MMM-yy HH:mm a");
+
+        return dateFormat.format(calendar.getTime());
     }
 
 }

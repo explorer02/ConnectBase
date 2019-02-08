@@ -132,6 +132,8 @@ public class FragInviteRequest extends Fragment {
                     }
                 });
 
+                mUserReference.keepSynced(true);
+
                 holder.itemView.setOnClickListener(v -> openUserProfile(id, holder.itemView.getContext()));
                 holder.ivAccept.setOnClickListener(v -> acceptRequest(id));
                 holder.ivReject.setOnClickListener(v -> rejectRequest(id, holder.ivReject.getContext()));
@@ -145,6 +147,7 @@ public class FragInviteRequest extends Fragment {
                 return new ViewHolder(view);
             }
         };
+        mInviteReference.keepSynced(true);
 
         inviteRequestList.setAdapter(adapter);
         adapter.startListening();

@@ -236,6 +236,7 @@ public class UpdateProfileActivity extends AppCompatActivity {
             }
         });
 
+        mUserReference.keepSynced(true);
 
     }
 

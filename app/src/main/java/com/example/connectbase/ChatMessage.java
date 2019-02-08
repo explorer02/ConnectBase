@@ -2,9 +2,13 @@ package com.example.connectbase;
 
 public class ChatMessage {
 
-    private String messageType, message, sender, time, seen;
+    private String messageType, message, sender, seen;
+    private long time;
 
-    public ChatMessage(String message_type, String message, String sender, String time, String seen) {
+    public ChatMessage() {
+    }
+
+    public ChatMessage(String message_type, String message, String sender, long time, String seen) {
         this.messageType = message_type;
         this.message = message;
         this.sender = sender;
@@ -36,11 +40,11 @@ public class ChatMessage {
         this.sender = sender;
     }
 
-    public String getTime() {
+    public long getTime() {
         return time;
     }
 
-    public void setTime(String time) {
+    public void setTime(long time) {
         this.time = time;
     }
 

@@ -2,7 +2,6 @@ package com.example.connectbase;
 
 import android.app.AlertDialog;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
@@ -13,12 +12,10 @@ import android.support.v7.widget.RecyclerView;
 import android.text.Editable;
 import android.text.InputType;
 import android.text.TextWatcher;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
-import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -35,8 +32,6 @@ import com.like.OnLikeListener;
 import com.squareup.picasso.Picasso;
 
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 
 import de.hdodenhof.circleimageview.CircleImageView;
@@ -140,6 +135,7 @@ public class FragBookmark extends Fragment {
 
                     }
                 });
+                mUserReference.keepSynced(true);
                 holder.star.setOnLikeListener(new OnLikeListener() {
                     @Override
                     public void liked(LikeButton likeButton) {
@@ -165,6 +161,7 @@ public class FragBookmark extends Fragment {
                 return new ViewHolder(view);
             }
         };
+        mBookmarkReference.keepSynced(true);
         bookmarkList.setAdapter(adapter);
         adapter.startListening();
 
@@ -192,16 +189,11 @@ public class FragBookmark extends Fragment {
                 .setMessage("Are you sure you want to remove "+usersHashMap.get(id).getName()+" from Bookmarks??")
                 .setNegativeButton("Cancel", (dialog12, which) -> ((LikeButton) star).setLiked(true))
 
-                .setPositiveButton("Ok", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog1, int which) {
-                        mBookmarkReference.child(currentId).child(id).removeValue().addOnCompleteListener(task -> {
-                            if (!task.isComplete()) {
-                                Toast.makeText(view.getContext(), task.getException().getMessage(), Toast.LENGTH_SHORT).show();
-                            }
-                        });
+                .setPositiveButton("Ok", (dialog1, which) -> mBookmarkReference.child(currentId).child(id).removeValue().addOnCompleteListener(task -> {
+                    if (!task.isComplete()) {
+                        Toast.makeText(view.getContext(), task.getException().getMessage(), Toast.LENGTH_SHORT).show();
                     }
-                });
+                }));
 
         dialog.setCancelable(false)
                 .show();

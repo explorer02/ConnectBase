@@ -29,7 +29,6 @@ import com.google.firebase.database.ValueEventListener;
 import com.like.LikeButton;
 import com.like.OnLikeListener;
 import com.miguelcatalan.materialsearchview.MaterialSearchView;
-import com.squareup.picasso.Picasso;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -49,6 +48,8 @@ public class DiscoverPeopleActivity extends AppCompatActivity implements UserAda
     String currentId=FirebaseAuth.getInstance().getUid();
     MaterialSearchView searchView;
     int listSelected=0;
+    CommonFunctions commonFunctions = new CommonFunctions();
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -128,6 +129,9 @@ public class DiscoverPeopleActivity extends AppCompatActivity implements UserAda
 
             }
         });
+
+        mUserReference.keepSynced(true);
+
         mTagsReference.orderByChild("value").addChildEventListener(new ChildEventListener() {
             @Override
             public void onChildAdded(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {
@@ -155,6 +159,8 @@ public class DiscoverPeopleActivity extends AppCompatActivity implements UserAda
 
             }
         });
+
+        mTagsReference.keepSynced(true);
 
     }
 
@@ -333,93 +339,98 @@ public class DiscoverPeopleActivity extends AppCompatActivity implements UserAda
             btnSend.setClickable(false);
 
             String type = btnSend.getTag().toString();
-            if (type.equals("not_friend")) {
+            switch (type) {
+                case "not_friend":
 
-                mInviteReference.child(currentId).child(uid).child("request_type").setValue("request_sent").addOnCompleteListener(task -> {
-                    if (task.isSuccessful()) {
-                        mInviteReference.child(uid).child(currentId).child("request_type").setValue("request_received").addOnCompleteListener(task1 -> {
-                            if (task1.isSuccessful()) {
-                                btnSend.setTag("request_sent");
-                                btnSend.setClickable(true);
-                                btnSend.setText("Cancel Invite");
-                            } else {
-                                Toast.makeText(DiscoverPeopleActivity.this, task1.getException().getMessage(), Toast.LENGTH_SHORT).show();
-                                btnSend.setClickable(true);
-                            }
-                        });
-                    } else {
-                        Toast.makeText(DiscoverPeopleActivity.this, task.getException().getMessage(), Toast.LENGTH_SHORT).show();
-                        btnSend.setClickable(true);
-                    }
-                });
-            } else if (type.equals("friend")) {
+                    mInviteReference.child(currentId).child(uid).child("request_type").setValue("request_sent").addOnCompleteListener(task -> {
+                        if (task.isSuccessful()) {
+                            mInviteReference.child(uid).child(currentId).child("request_type").setValue("request_received").addOnCompleteListener(task1 -> {
+                                if (task1.isSuccessful()) {
+                                    btnSend.setTag("request_sent");
+                                    btnSend.setClickable(true);
+                                    btnSend.setText("Cancel Invite");
+                                } else {
+                                    Toast.makeText(DiscoverPeopleActivity.this, task1.getException().getMessage(), Toast.LENGTH_SHORT).show();
+                                    btnSend.setClickable(true);
+                                }
+                            });
+                        } else {
+                            Toast.makeText(DiscoverPeopleActivity.this, task.getException().getMessage(), Toast.LENGTH_SHORT).show();
+                            btnSend.setClickable(true);
+                        }
+                    });
+                    break;
+                case "friend":
 
-                mFriendReference.child(currentId).child(uid).removeValue().addOnCompleteListener(task -> {
-                    if (task.isSuccessful()) {
-                        mFriendReference.child(uid).child(currentId).removeValue().addOnCompleteListener(task12 -> {
-                            if (task12.isSuccessful()) {
-                                btnSend.setTag("not_friend");
-                                btnSend.setText("Send Invite");
-                                btnSend.setClickable(true);
-                            } else {
-                                Toast.makeText(DiscoverPeopleActivity.this, task12.getException().getMessage(), Toast.LENGTH_SHORT).show();
-                                btnSend.setClickable(true);
-                            }
-                        });
-                    } else {
-                        Toast.makeText(DiscoverPeopleActivity.this, task.getException().getMessage(), Toast.LENGTH_SHORT).show();
-                        btnSend.setClickable(true);
-                    }
-                });
+                    mFriendReference.child(currentId).child(uid).removeValue().addOnCompleteListener(task -> {
+                        if (task.isSuccessful()) {
+                            mFriendReference.child(uid).child(currentId).removeValue().addOnCompleteListener(task12 -> {
+                                if (task12.isSuccessful()) {
+                                    btnSend.setTag("not_friend");
+                                    btnSend.setText("Send Invite");
+                                    btnSend.setClickable(true);
+                                } else {
+                                    Toast.makeText(DiscoverPeopleActivity.this, task12.getException().getMessage(), Toast.LENGTH_SHORT).show();
+                                    btnSend.setClickable(true);
+                                }
+                            });
+                        } else {
+                            Toast.makeText(DiscoverPeopleActivity.this, task.getException().getMessage(), Toast.LENGTH_SHORT).show();
+                            btnSend.setClickable(true);
+                        }
+                    });
 
-            } else if (type.equals("request_sent")) {
+                    break;
+                case "request_sent":
 
-                mInviteReference.child(currentId).child(uid).removeValue().addOnCompleteListener(task -> {
+                    mInviteReference.child(currentId).child(uid).removeValue().addOnCompleteListener(task -> {
 
-                    if (task.isSuccessful()) {
-                        mInviteReference.child(uid).child(currentId).removeValue().addOnCompleteListener(task13 -> {
+                        if (task.isSuccessful()) {
+                            mInviteReference.child(uid).child(currentId).removeValue().addOnCompleteListener(task13 -> {
 
-                            if (task13.isSuccessful()) {
-                                btnSend.setTag("not_friend");
-                                btnSend.setText("Send Invite");
-                                btnSend.setClickable(true);
-                            } else {
-                                Toast.makeText(DiscoverPeopleActivity.this, task13.getException().getMessage(), Toast.LENGTH_SHORT).show();
-                                btnSend.setClickable(true);
-                            }
-                        });
-                    } else {
-                        Toast.makeText(DiscoverPeopleActivity.this, task.getException().getMessage(), Toast.LENGTH_SHORT).show();
-                        btnSend.setClickable(true);
-                    }
-                });
+                                if (task13.isSuccessful()) {
+                                    btnSend.setTag("not_friend");
+                                    btnSend.setText("Send Invite");
+                                    btnSend.setClickable(true);
+                                } else {
+                                    Toast.makeText(DiscoverPeopleActivity.this, task13.getException().getMessage(), Toast.LENGTH_SHORT).show();
+                                    btnSend.setClickable(true);
+                                }
+                            });
+                        } else {
+                            Toast.makeText(DiscoverPeopleActivity.this, task.getException().getMessage(), Toast.LENGTH_SHORT).show();
+                            btnSend.setClickable(true);
+                        }
+                    });
 
-            } else if (type.equals("request_received")) {
+                    break;
+                case "request_received":
 
-                mFriendReference.child(currentId).child(uid).child("time").setValue(ServerValue.TIMESTAMP).addOnCompleteListener(task -> {
+                    mFriendReference.child(currentId).child(uid).child("time").setValue(ServerValue.TIMESTAMP).addOnCompleteListener(task -> {
 
-                    if (task.isSuccessful()) {
-                        mFriendReference.child(uid).child(currentId).child("since").setValue(ServerValue.TIMESTAMP).addOnCompleteListener(task14 -> {
+                        if (task.isSuccessful()) {
+                            mFriendReference.child(uid).child(currentId).child("since").setValue(ServerValue.TIMESTAMP).addOnCompleteListener(task14 -> {
 
-                            if (task14.isSuccessful()) {
-                                btnSend.setTag("friend");
-                                btnSend.setText("Remove from FriendList");
-                                btnSend.setClickable(true);
-                                btnReject.setVisibility(View.GONE);
-                                mInviteReference.child(currentId).child(uid).removeValue();
-                                mInviteReference.child(uid).child(currentId).removeValue();
-                            } else {
-                                Toast.makeText(DiscoverPeopleActivity.this, task14.getException().getMessage(), Toast.LENGTH_SHORT).show();
-                                btnSend.setClickable(true);
-                            }
+                                if (task14.isSuccessful()) {
+                                    btnSend.setTag("friend");
+                                    btnSend.setText("Remove from FriendList");
+                                    btnSend.setClickable(true);
+                                    btnReject.setVisibility(View.GONE);
+                                    mInviteReference.child(currentId).child(uid).removeValue();
+                                    mInviteReference.child(uid).child(currentId).removeValue();
+                                } else {
+                                    Toast.makeText(DiscoverPeopleActivity.this, task14.getException().getMessage(), Toast.LENGTH_SHORT).show();
+                                    btnSend.setClickable(true);
+                                }
 
-                        });
-                    } else {
-                        Toast.makeText(DiscoverPeopleActivity.this, task.getException().getMessage(), Toast.LENGTH_SHORT).show();
-                        btnSend.setClickable(true);
-                    }
-                });
+                            });
+                        } else {
+                            Toast.makeText(DiscoverPeopleActivity.this, task.getException().getMessage(), Toast.LENGTH_SHORT).show();
+                            btnSend.setClickable(true);
+                        }
+                    });
 
+                    break;
             }
 
         });
@@ -450,12 +461,11 @@ public class DiscoverPeopleActivity extends AppCompatActivity implements UserAda
         });
 
             ivResume.setVisibility(View.GONE);
-        if(!userArray.get(i).getImage().isEmpty())
-            Picasso.get()
-            .load(userArray.get(i).getImage())
-            .placeholder(R.drawable.avatar)
-            .into(ivProfilePic);
+        if (!userArray.get(i).getImage().isEmpty()) {
+            commonFunctions.downloadProfilePic(this, uid, ivProfilePic, userArray.get(i).getImage());
+        }
         else ivProfilePic.setImageResource(R.drawable.avatar);
+
 
         arrayView.get(0).setText("Age:\t\t"+userArray.get(i).getAge());
         arrayView.get(1).setText("Qualifications:\t\t"+userArray.get(i).getQualification());
