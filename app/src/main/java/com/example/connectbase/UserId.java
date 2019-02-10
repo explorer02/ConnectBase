@@ -2,12 +2,14 @@ package com.example.connectbase;
 
 public class UserId {
     private String star;
+    private long time;
 
     public UserId() {
     }
 
-    public UserId(String star) {
+    public UserId(String star, long time) {
         this.star = star;
+        this.time = time;
     }
 
     public String getStar() {
@@ -16,5 +18,13 @@ public class UserId {
 
     public void setStar(String star) {
         this.star = star;
+    }
+
+    public long getTime() {
+        return time;
+    }
+
+    public void setTime(long time) {
+        this.time = time;
     }
 }

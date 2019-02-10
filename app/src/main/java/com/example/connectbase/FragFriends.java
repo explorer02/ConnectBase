@@ -43,7 +43,7 @@ public class FragFriends extends Fragment {
     String currentId=MainActivity.currentId;
     View view;
     EditText etSearch;
-    FirebaseRecyclerAdapter<UserId,FragFriends.ViewHolder> adapter;
+    FirebaseRecyclerAdapter<FriendsModelClass, ViewHolder> adapter;
     HashMap<String,Users> usersHashMap=new HashMap<>();
     FirebaseRecyclerOptions friendOptions;
     ArrayList<String> arrayId=new ArrayList<>();
@@ -70,11 +70,12 @@ public class FragFriends extends Fragment {
         LinearLayoutManager manager=new LinearLayoutManager(view.getContext());
         friendList.setLayoutManager(manager);
         etSearch=view.findViewById(R.id.et_fragBookmark_search);
-        friendOptions=new FirebaseRecyclerOptions.Builder<UserId>()
-                .setQuery(mFriendReference.child(currentId).orderByChild("time"),UserId.class)
+        friendOptions = new FirebaseRecyclerOptions.Builder<FriendsModelClass>()
+                .setQuery(mFriendReference.child(currentId).orderByChild("time"), FriendsModelClass.class)
                 .build();
 
     }
+
 
     @Override
     public void onActivityCreated(@Nullable Bundle savedInstanceState) {
@@ -100,25 +101,26 @@ public class FragFriends extends Fragment {
             }
         });
 
-        adapter=new FirebaseRecyclerAdapter<UserId, FragFriends.ViewHolder>(friendOptions) {
+
+        adapter = new FirebaseRecyclerAdapter<FriendsModelClass, FragFriends.ViewHolder>(friendOptions) {
             @Override
-            protected void onBindViewHolder(@NonNull FragFriends.ViewHolder holder, int position, @NonNull UserId model) {
+            protected void onBindViewHolder(@NonNull FragFriends.ViewHolder holder, int position, @NonNull FriendsModelClass model) {
 
-                String id=getRef(position).getKey();
-                arrayId.add(position,id);
+                String id = getRef(position).getKey();
+                arrayId.add(position, id);
 
-                mUserReference.child(id).addValueEventListener(new ValueEventListener() {
+                mUserReference.child(id).addListenerForSingleValueEvent(new ValueEventListener() {
                     @Override
                     public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
 
-                        holder.tvName.setText(dataSnapshot.child("name").getValue().toString());
-                        holder.tvPosition.setText(dataSnapshot.child("position").getValue().toString());
-                        String image=dataSnapshot.child("image").getValue().toString();
+                        Users user = dataSnapshot.getValue(Users.class);
+                        holder.tvName.setText(user.getName());
+                        holder.tvPosition.setText(user.getPosition());
+                        String image = user.getImage();
 
-                        Users user=dataSnapshot.getValue(Users.class);
-                        usersHashMap.put(id,user);
+                        usersHashMap.put(id, user);
                         etSearch.setInputType(InputType.TYPE_TEXT_FLAG_CAP_WORDS);
-                        if(!image.isEmpty())
+                        if (!image.isEmpty())
                             Picasso.get()
                                     .load(image)
                                     .placeholder(R.drawable.avatar)
@@ -135,13 +137,13 @@ public class FragFriends extends Fragment {
 
 
                 holder.itemView.setOnClickListener(v -> showMenu(id, holder.itemView.getContext()));
-    }
+            }
 
             @NonNull
             @Override
             public FragFriends.ViewHolder onCreateViewHolder(@NonNull ViewGroup viewGroup, int i) {
 
-                View view=LayoutInflater.from(viewGroup.getContext()).inflate(R.layout.layout_row_bookmark,viewGroup,false);
+                View view = LayoutInflater.from(viewGroup.getContext()).inflate(R.layout.layout_row_bookmark, viewGroup, false);
 
                 return new FragFriends.ViewHolder(view);
             }
@@ -154,13 +156,92 @@ public class FragFriends extends Fragment {
 
     }
 
+    /*   @Override
+       public void onStart() {
+           super.onStart();
 
+           etSearch.addTextChangedListener(new TextWatcher() {
+               @Override
+               public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+
+               }
+
+               @Override
+               public void onTextChanged(CharSequence s, int start, int before, int count) {
+
+               }
+
+               @Override
+               public void afterTextChanged(Editable s) {
+
+                   if (!s.toString().trim().isEmpty())
+                       loadIndices(s.toString());
+
+               }
+           });
+
+
+           adapter=new FirebaseRecyclerAdapter<FriendsModelClass, FragFriends.ViewHolder>(friendOptions) {
+               @Override
+               protected void onBindViewHolder(@NonNull FragFriends.ViewHolder holder, int position, @NonNull FriendsModelClass model) {
+
+                   String id=getRef(position).getKey();
+                   arrayId.add(position,id);
+
+                   mUserReference.child(id).addListenerForSingleValueEvent(new ValueEventListener() {
+                       @Override
+                       public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+
+                           Users user=dataSnapshot.getValue(Users.class);
+                           holder.tvName.setText(user.getName());
+                           holder.tvPosition.setText(user.getPosition());
+                           String image=user.getImage();
+
+                           usersHashMap.put(id,user);
+                           etSearch.setInputType(InputType.TYPE_TEXT_FLAG_CAP_WORDS);
+                           if(!image.isEmpty())
+                               Picasso.get()
+                                       .load(image)
+                                       .placeholder(R.drawable.avatar)
+                                       .into(holder.ivPic);
+                       }
+
+                       @Override
+                       public void onCancelled(@NonNull DatabaseError databaseError) {
+
+                       }
+                   });
+
+                   mUserReference.keepSynced(true);
+
+
+                   holder.itemView.setOnClickListener(v -> showMenu(id, holder.itemView.getContext()));
+               }
+
+               @NonNull
+               @Override
+               public FragFriends.ViewHolder onCreateViewHolder(@NonNull ViewGroup viewGroup, int i) {
+
+                   View view=LayoutInflater.from(viewGroup.getContext()).inflate(R.layout.layout_row_bookmark,viewGroup,false);
+
+                   return new FragFriends.ViewHolder(view);
+               }
+           };
+
+           mFriendReference.keepSynced(true);
+
+           friendList.setAdapter(adapter);
+           adapter.startListening();
+
+       }
+   */
     public class ViewHolder extends RecyclerView.ViewHolder{
 
         TextView tvName,tvPosition;
         CircleImageView ivPic;
         LikeButton star;
-        public ViewHolder(@NonNull View itemView) {
+
+        ViewHolder(@NonNull View itemView) {
             super(itemView);
             tvName=itemView.findViewById(R.id.tv_layoutRowBookmark_name);
             tvPosition=itemView.findViewById(R.id.tv_layoutRowBookmark_position);

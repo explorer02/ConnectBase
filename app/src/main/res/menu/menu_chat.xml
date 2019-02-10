@@ -4,4 +4,12 @@
     <item
         android:id="@+id/menu_chat_clear"
         android:title="Clear Chat" />
+    <item
+        android:id="@+id/menu_chat_generatetext"
+        android:title="Generate Message" />
+    <item
+        android:id="@+id/menu_chat_clearSharedpref"
+        android:title="Clear SharedPrefs" />
+
+
 </menu>

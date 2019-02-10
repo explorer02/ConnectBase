@@ -2,13 +2,14 @@ package com.example.connectbase;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
+import android.app.ProgressDialog;
 import android.content.ClipData;
 import android.content.ContentValues;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
-import android.database.sqlite.SQLiteException;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.AsyncTask;
@@ -43,10 +44,12 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.database.ChildEventListener;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.Query;
 import com.google.firebase.database.ServerValue;
 import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.storage.FirebaseStorage;
@@ -73,7 +76,7 @@ public class ChatActivity extends AppCompatActivity {
     DatabaseReference mChatReference, mFriendReference;
     final int REQUEST_CODE_GALLERY = 1031;
     EditText etMessage;
-    String chatId = null;
+    String chatId = "";
     static final int REQUEST_CODE_CAMERA = 101;
     static final int REQUEST_CODE_FILE = 102;
     StorageReference mChatImageReference, mChatFileReference;
@@ -89,8 +92,70 @@ public class ChatActivity extends AppCompatActivity {
 
     ArrayList<Pair> chatArray = new ArrayList<>();
     HashMap<String, Object> chatMap = new HashMap<>();
-    ChatAdapter adapter = new ChatAdapter();
+    ChatAdapter adapter;
+    ImageView ivSend;
+    SharedPreferences sharedPreferences;
+    Query chatQuery;
+    ChildEventListener chatListener = new ChildEventListener() {
+        @Override
+        public void onChildAdded(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {
 
+            if (dataSnapshot.hasChild("messageType")) {
+
+                String type = dataSnapshot.child("messageType").getValue().toString();
+
+                switch (type) {
+                    case "text":
+                        ChatMessage chatMessage = dataSnapshot.getValue(ChatMessage.class);
+                        Log.i("DataSnap", chatMessage.getMessage());
+                        int sentKey = chatMessage.getSender().equals(currentId) ? 1 : -1;
+                        addMessageToDatabase(dataSnapshot.getKey(), chatMessage, sentKey);
+                        break;
+                }
+            }
+
+        }
+
+        @Override
+        public void onChildChanged(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {
+
+            String key = dataSnapshot.getKey();
+
+            if (!dataSnapshot.hasChild("messageType"))
+                return;
+
+            String type = dataSnapshot.child("messageType").getValue().toString();
+            String sender = dataSnapshot.child("sender").getValue().toString();
+
+            if (sender.equals(currentId)) {
+
+                switch (type) {
+                    case "text":
+                        ChatMessage chatMessage = dataSnapshot.getValue(ChatMessage.class);
+                        Log.i("DataSnap", chatMessage.getMessage());
+                        int sentKey = chatMessage.getSender().equals(currentId) ? 1 : -1;
+                        addMessageToDatabase(key, chatMessage, sentKey);
+                        break;
+                }
+            }
+
+        }
+
+        @Override
+        public void onChildRemoved(@NonNull DataSnapshot dataSnapshot) {
+
+        }
+
+        @Override
+        public void onChildMoved(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {
+
+        }
+
+        @Override
+        public void onCancelled(@NonNull DatabaseError databaseError) {
+
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -102,109 +167,53 @@ public class ChatActivity extends AppCompatActivity {
 
         actionBar.setDisplayShowCustomEnabled(true);
 
-        etMessage = findViewById(R.id.et_chat_message);
-        chatList = findViewById(R.id.list_chat);
-        chatList.setLayoutManager(new LinearLayoutManager(this));
-        chatList.setAdapter(adapter);
-
-        View view = getLayoutInflater().inflate(R.layout.layout_toolbar_chat_activity, null, false);
-        actionBar.setCustomView(view, new ActionBar.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-        actionBar.setDisplayHomeAsUpEnabled(true);
-
         mFriendReference = FirebaseDatabase.getInstance().getReference().child("Friends");
         mChatReference = FirebaseDatabase.getInstance().getReference().child("Chats");
         mChatImageReference = FirebaseStorage.getInstance().getReference().child("ChatImage");
         mChatFileReference = FirebaseStorage.getInstance().getReference().child("ChatFiles");
 
+        ivSend = findViewById(R.id.iv_chat_send);
+        etMessage = findViewById(R.id.et_chat_message);
+
+        View view = getLayoutInflater().inflate(R.layout.layout_toolbar_chat_activity, null, false);
+        actionBar.setCustomView(view, new ActionBar.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        actionBar.setDisplayHomeAsUpEnabled(true);
+
+
         user = (Users) getIntent().getSerializableExtra("user");
         id = getIntent().getStringExtra("id");
         currentId = FirebaseAuth.getInstance().getUid();
-        new LoadChats().execute();
+        generateChatId();
+
+        chatList = findViewById(R.id.list_chat);
+        LinearLayoutManager layoutManager = new LinearLayoutManager(this);
+        layoutManager.setStackFromEnd(true);
+        layoutManager.setSmoothScrollbarEnabled(true);
+        chatList.setLayoutManager(layoutManager);
+
+        adapter = new ChatAdapter();
+        chatList.setAdapter(adapter);
+
+        new LoadChatsFromDatabase().execute();
+        new Handler().postDelayed(this::loadOnlineMessages, 1000);
 
         TextView tvName = view.findViewById(R.id.tv_lTCA_name);
         tvName.setText(user.getName());
         CircleImageView ivProfilePic = view.findViewById(R.id.iv_lTCA_ivProfilePic);
-        if (!user.getThumbImage().isEmpty())
+        if (!user.getThumbImage().isEmpty()) {
             Picasso.get()
                     .load(user.getThumbImage())
                     .placeholder(R.drawable.avatar)
                     .into(ivProfilePic);
+        }
         View linLay = view.findViewById(R.id.linLay_lTCA_view);
         linLay.setOnClickListener(v -> openUserProfile());
-        generateChatId();
-
-    }
-
-    void generateChatId() {
-        mFriendReference.child(currentId).child(id).addListenerForSingleValueEvent(new ValueEventListener() {
-            @Override
-            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                if (dataSnapshot.hasChild("chatId"))
-                    chatId = dataSnapshot.child("chatId").getValue().toString();
-                else {
-                    chatId = mChatReference.child(currentId).child(id).push().getKey();
-                    mFriendReference.child(currentId).child(id).child("chatId").setValue(chatId);
-                    mFriendReference.child(id).child(currentId).child("chatId").setValue(chatId);
-                }
-                new Handler().post(() -> {
-                    createTables();
-                });
-            }
-
-            @Override
-            public void onCancelled(@NonNull DatabaseError databaseError) {
-
-            }
+        ivSend.setOnClickListener(v -> {
+            String message = etMessage.getText().toString().trim();
+            etMessage.setText(null);
+            if (!message.isEmpty())
+                sendMessage(message);
         });
-    }
-
-    public void sendMessage(View view) {
-
-        if (!commonFunctions.checkInternetConnection(this)) {
-
-            Snackbar.make(chatList, "No Internet Connection!!", Snackbar.LENGTH_SHORT).show();
-            return;
-        }
-
-        if (chatId == null) {
-            Snackbar.make(view, "No Internet Connection!!", Snackbar.LENGTH_SHORT).show();
-            generateChatId();
-            return;
-        }
-
-        String message = etMessage.getText().toString().trim();
-        etMessage.setText(null);
-        if (message.isEmpty())
-            return;
-        HashMap map = new HashMap();
-        map.put("messageType", "text");
-        map.put("message", message);
-        map.put("sender", currentId);
-        map.put("time", ServerValue.TIMESTAMP);
-        map.put("seen", "false");
-
-        String pushKey = mChatReference.child(chatId).push().getKey();
-        mChatReference.child(chatId).child(pushKey).setValue(map);
-
-        mChatReference.child(chatId).child(pushKey).addListenerForSingleValueEvent(new ValueEventListener() {
-            @Override
-            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                ChatMessage chatMessage = dataSnapshot.getValue(ChatMessage.class);
-                chatArray.add(new Pair(pushKey, "text"));
-                chatMap.put(pushKey, chatMessage);
-                adapter.notifyItemInserted(chatArray.size() - 1);
-                chatList.scrollToPosition(chatArray.size() - 1);
-
-                addMessageToDatabase(pushKey, chatMessage, 1);
-            }
-
-            @Override
-            public void onCancelled(@NonNull DatabaseError databaseError) {
-
-            }
-        });
-
-        //TODO: Notify Adapter about dataset change
 
     }
 
@@ -695,15 +704,66 @@ public class ChatActivity extends AppCompatActivity {
         return super.onCreateOptionsMenu(menu);
     }
 
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
+    void generateChatId() {
 
-        switch (item.getItemId()) {
-            case R.id.menu_chat_clear:
-                break;
+        sharedPreferences = getSharedPreferences("chatData", MODE_PRIVATE);
+        String cid = sharedPreferences.getString("user_" + id + "_chat_id", "");
+
+        if (!cid.isEmpty()) {
+            chatId = cid;
+            return;
         }
-        return true;
+
+        mFriendReference.child(currentId).child(id).addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                if (dataSnapshot.hasChild("chatId"))
+                    chatId = dataSnapshot.child("chatId").getValue().toString();
+
+                else {
+                    chatId = mChatReference.child(currentId).child(id).push().getKey();
+                    mFriendReference.child(currentId).child(id).child("chatId").setValue(chatId);
+                    mFriendReference.child(id).child(currentId).child("chatId").setValue(chatId);
+                }
+                sharedPreferences.edit()
+                        .putString("user_" + id + "_chat_id", chatId)
+                        .apply();
+
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+
+            }
+        });
     }
+
+    void sendMessage(String message) {
+        if (!commonFunctions.checkInternetConnection(this)) {
+
+            Snackbar.make(chatList, "No Internet Connection!!", Snackbar.LENGTH_SHORT).show();
+            return;
+        }
+
+        if (chatId == null) {
+            Snackbar.make(chatList, "No Internet Connection!!", Snackbar.LENGTH_SHORT).show();
+            generateChatId();
+            return;
+        }
+
+        HashMap map = new HashMap();
+        map.put("messageType", "text");
+        map.put("message", message);
+        map.put("sender", currentId);
+        map.put("time", ServerValue.TIMESTAMP);
+        map.put("seen", "false");
+
+        String pushKey = mChatReference.child(chatId).push().getKey();
+        mChatReference.child(chatId).child(pushKey).setValue(map);
+
+
+    }
+
 
     private void openUserProfile() {
 
@@ -728,61 +788,120 @@ public class ChatActivity extends AppCompatActivity {
         }
     }
 
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+
+        switch (item.getItemId()) {
+            case R.id.menu_chat_clear:
+                new ClearChats().execute();
+                break;
+            case R.id.menu_chat_generatetext:
+                for (int i = 1; i <= 20; i++)
+                    sendMessage("Message (" + i + ")");
+                break;
+            case R.id.menu_chat_clearSharedpref:
+                sharedPreferences.edit().clear().apply();
+                break;
+        }
+        return true;
+    }
+
     void addMessageToDatabase(String msgId, Object object, int sent) {
 
-
         ContentValues values = new ContentValues();
+        String type = "";
+        String seen = "";
+        Log.i("ConnectBaseTimes", "Called");
 
-        ContentValues messageMetaData = new ContentValues();
-        messageMetaData.put("message_id", msgId);
-        messageMetaData.put("sent", sent);
-        values.put("message_id", msgId);
+        try {
+            ContentValues messageMetaData = new ContentValues();
+            messageMetaData.put("message_id", msgId);
+            messageMetaData.put("sent", sent);
+            values.put("message_id", msgId);
 
-        if (object instanceof ChatMessage) {
 
-            ChatMessage chatMessage = (ChatMessage) object;
-            values.put("sender", chatMessage.getSender());
-            values.put("message", chatMessage.getMessage());
-            values.put("time", chatMessage.getTime());
-            values.put("seen", chatMessage.getSeen());
+            if (object instanceof ChatMessage) {
 
-            messageMetaData.put("message_type", "text");
+                ChatMessage chatMessage = (ChatMessage) object;
+                values.put("sender", chatMessage.getSender());
+                values.put("message", chatMessage.getMessage());
+                values.put("time", chatMessage.getTime());
+                values.put("seen", chatMessage.getSeen());
+                seen = chatMessage.getSeen();
+                type = "text";
 
-            chatDatabase.insert("message_text", null, values);
-        } else if (object instanceof ChatImage) {
 
-            ChatImage chatImage = (ChatImage) object;
-            values.put("sender", chatImage.getSender());
-            values.put("description", chatImage.getDescription());
-            values.put("imageUrl", chatImage.getImageUrl());
-            values.put("imageName", chatImage.getImageName());
-            values.put("thumbImage", chatImage.getThumbImage());
-            values.put("status", chatImage.getStatus());
-            values.put("time", chatImage.getTime());
-            values.put("seen", chatImage.getSeen());
+            } else if (object instanceof ChatImage) {
 
-            messageMetaData.put("message_type", "image");
-            chatDatabase.insert("message_image", null, values);
+                ChatImage chatImage = (ChatImage) object;
+                values.put("sender", chatImage.getSender());
+                values.put("description", chatImage.getDescription());
+                values.put("imageUrl", chatImage.getImageUrl());
+                values.put("imageName", chatImage.getImageName());
+                values.put("thumbImage", chatImage.getThumbImage());
+                values.put("status", chatImage.getStatus());
+                values.put("time", chatImage.getTime());
+                values.put("seen", chatImage.getSeen());
+                seen = chatImage.getSeen();
+                type = "image";
 
-        } else if (object instanceof ChatFile) {
+            } else if (object instanceof ChatFile) {
 
-            ChatFile chatFile = (ChatFile) object;
-            values.put("sender", chatFile.getSender());
-            values.put("description", chatFile.getDescription());
-            values.put("fileUrl", chatFile.getFileUrl());
-            values.put("fileName", chatFile.getFileName());
-            values.put("status", chatFile.getStatus());
-            values.put("time", chatFile.getTime());
-            values.put("seen", chatFile.getSeen());
+                ChatFile chatFile = (ChatFile) object;
+                values.put("sender", chatFile.getSender());
+                values.put("description", chatFile.getDescription());
+                values.put("fileUrl", chatFile.getFileUrl());
+                values.put("fileName", chatFile.getFileName());
+                values.put("status", chatFile.getStatus());
+                values.put("time", chatFile.getTime());
+                values.put("seen", chatFile.getSeen());
+                seen = chatFile.getSeen();
+                type = "file";
 
-            messageMetaData.put("message_type", "file");
+            }
 
-            chatDatabase.insert("message_file", null, values);
+            messageMetaData.put("message_type", type);
+            long val1 = chatDatabase.insert("user_" + id, null, messageMetaData);
+            long val2 = chatDatabase.insert("message_" + type, null, values);
 
+            Log.i("ConnectBase", val1 + "\t\t" + val2);
+
+            if (val1 != -1 && val2 != -1) {
+
+
+                chatArray.add(new Pair(msgId, type));
+                chatMap.put(msgId, object);
+                adapter.notifyItemInserted(chatArray.size() - 1);
+                chatList.scrollToPosition(chatArray.size() - 1);
+            } else {
+                if (seen.equals("true")) {
+                    chatDatabase.execSQL("update message_" + type + " set seen='true' where message_id='" + msgId + "'");
+                    Object object1 = chatMap.get(msgId);
+                    if (object1 instanceof ChatMessage)
+                        ((ChatMessage) object1).setSeen("true");
+                    else if (object1 instanceof ChatImage)
+                        ((ChatImage) object1).setSeen("true");
+                    else ((ChatFile) object1).setSeen("true");
+                    chatMap.put(msgId, object1);
+                    int index = -1;
+                    for (int i = 0; i < chatArray.size(); i++)
+                        if (chatArray.get(i).getId().equals(msgId))
+                            index = i;
+                    adapter.notifyItemChanged(index);
+                    updateSharedPreference(msgId);
+
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
 
-        chatDatabase.insert("user_" + id, null, messageMetaData);
+    }
 
+    private void updateSharedPreference(String msgId) {
+        sharedPreferences.edit()
+                .putString("user_" + id + "_message_id", msgId)
+                .apply();
     }
 
     void createTables() {
@@ -791,7 +910,7 @@ public class ChatActivity extends AppCompatActivity {
 
         chatDatabase.execSQL("create table if not exists user_" + id + "('message_id' varchar not null primary key,'message_type' varchar not null,sent int)");
 
-        chatDatabase.execSQL("CREATE TABLE if not exists message_text('message_id' varchar NOT NULL,'message' varchar NOT NULL,'sender' varchar NOT NULL,'time' varchar NOT NULL,'seen' varchar NOT NULL,PRIMARY KEY ('message_id'))");
+        chatDatabase.execSQL("CREATE TABLE if not exists message_text('message_id' varchar NOT NULL ,'message' varchar NOT NULL,'sender' varchar NOT NULL,'time' varchar NOT NULL,'seen' varchar NOT NULL,PRIMARY KEY ('message_id'))");
 
         chatDatabase.execSQL("CREATE TABLE if not exists 'message_image' ('message_id' VARCHAR NOT NULL,'sender' VARCHAR NOT NULL,'description' VARCHAR NOT NULL,'imageName' VARCHAR NOT NULL,'imageUrl' VARCHAR NOT NULL,'thumbImage' VARCHAR NOT NULL,'status' VARCHAR NOT NULL,'time' varchar NOT NULL,'seen' VARCHAR NOT NULL,PRIMARY KEY ('message_id'))");
 
@@ -799,52 +918,137 @@ public class ChatActivity extends AppCompatActivity {
 
     }
 
-    private void loadChatArrayList() throws SQLiteException, InterruptedException {
-        chatDatabase = openOrCreateDatabase("chats", MODE_PRIVATE, null);
+    void loadOnlineMessages() {
+        String lastKey = sharedPreferences.getString("user_" + id + "_message_id", "");
 
-        Cursor cursor = chatDatabase.rawQuery("Select * from user_" + id, null, null);
+        if (lastKey.isEmpty()) {
+            chatQuery = mChatReference.child(chatId).orderByKey();
+        } else chatQuery = mChatReference.child(chatId).orderByKey().startAt(lastKey);
 
-        if (cursor == null) {
-            return;
-        }
-        int size = cursor.getCount();
-        cursor.moveToFirst();
-        int idIdx = cursor.getColumnIndex("message_id");
-        int typeIdx = cursor.getColumnIndex("message_type");
-        do {
-            String message_id = cursor.getString(idIdx);
-            String type = cursor.getString(typeIdx);
-            Cursor cursor1;
-            Thread.sleep(5);
-            switch (type) {
-                case "text":
-                    cursor1 = chatDatabase.rawQuery("Select * from message_text where message_id='" + message_id + "'", null, null);
-                    int msgIdx = cursor1.getColumnIndex("message");
-                    int senderIdx = cursor1.getColumnIndex("sender");
-                    int timeIdx = cursor1.getColumnIndex("time");
-                    int seenIdx = cursor1.getColumnIndex("seen");
-                    cursor1.moveToFirst();
-                    String message = cursor1.getString(msgIdx);
-                    String sender = cursor1.getString(senderIdx);
-                    Long time = Long.parseLong(cursor1.getString(timeIdx));
-                    String seen = cursor1.getString(seenIdx);
-                    ChatMessage chatMessage = new ChatMessage("text", message, sender, time, seen);
-                    chatArray.add(new Pair(message_id, type));
-                    chatMap.put(message_id, chatMessage);
-                    adapter.notifyItemInserted(chatArray.size() - 1);
-                    chatList.scrollToPosition(chatArray.size() - 1);
-                    cursor1.close();
-                    break;
-            }
-
-        }
-        while (cursor.moveToNext());
-
-        cursor.close();
+        chatQuery.addChildEventListener(chatListener);
 
     }
 
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (chatQuery != null && chatListener != null)
+            chatQuery.removeEventListener(chatListener);
+        finish();
+
+
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        String msgId = getLastSeenMessage();
+        if (id != null)
+            updateSharedPreference(msgId);
+    }
+
+    private String getLastSeenMessage() {
+        String msgid = null;
+        for (int i = 0; i < chatArray.size(); i++) {
+            String key = chatArray.get(i).getId();
+            String type = chatArray.get(i).getType();
+            switch (type) {
+                case "text":
+                    String seen = ((ChatMessage) chatMap.get(key)).getSeen();
+                    if (seen.equals("true"))
+                        msgid = key;
+                    break;
+                case "image":
+                    seen = ((ChatImage) chatMap.get(key)).getSeen();
+                    if (seen.equals("true"))
+                        msgid = key;
+                    break;
+                case "file":
+                    seen = ((ChatFile) chatMap.get(key)).getSeen();
+                    if (seen.equals("true"))
+                        msgid = key;
+                    break;
+            }
+        }
+        return msgid;
+
+    }
+
+    @SuppressLint("StaticFieldLeak")
+    class ClearChats extends AsyncTask<Void, Integer, Void> {
+
+        ProgressDialog dialog = new ProgressDialog(ChatActivity.this);
+
+        Cursor cursor;
+
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+
+            dialog.setTitle("Deleting Messages");
+            dialog.setMessage("Please wait while deleting messages...");
+            dialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
+            dialog.setProgress(0);
+            dialog.show();
+            dialog.setCancelable(false);
+            cursor = chatDatabase.rawQuery("Select * from user_" + id, null, null);
+            int max = cursor.getCount();
+            dialog.setMax(max);
+
+
+        }
+
+        @Override
+        protected Void doInBackground(Void... voids) {
+
+            int curr = 0;
+            try {
+                cursor.moveToFirst();
+                do {
+                    curr++;
+                    if (curr % 10 == 0)
+                        publishProgress(curr);
+
+                    String type = cursor.getString(1);
+                    String msgid = cursor.getString(0);
+                    chatDatabase.execSQL("delete from message_" + type + " where message_id='" + msgid + "'");
+                }
+                while (cursor.moveToNext());
+                cursor.close();
+                chatDatabase.execSQL("delete from user_" + id);
+                chatMap.clear();
+                chatArray.clear();
+                adapter.notifyDataSetChanged();
+
+            } catch (Exception e) {
+                Snackbar.make(chatList, e.getMessage(), Snackbar.LENGTH_SHORT).show();
+            }
+
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(Void aVoid) {
+            super.onPostExecute(aVoid);
+            chatArray.clear();
+            chatMap.clear();
+            adapter.notifyDataSetChanged();
+            dialog.dismiss();
+        }
+
+        @Override
+        protected void onProgressUpdate(Integer... values) {
+            super.onProgressUpdate(values);
+            dialog.setProgress(values[0]);
+        }
+    }
+
     public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
+
+
+        ChatAdapter() {
+
+        }
 
         @NonNull
         @Override
@@ -881,9 +1085,22 @@ public class ChatActivity extends AppCompatActivity {
                     if (chatMessage.getSender().equals(currentId)) {
                         viewHolderMessage.layout.setGravity(Gravity.END);
                         viewHolderMessage.tvName.setGravity(Gravity.END);
+                        viewHolderMessage.ivSeen.setVisibility(View.VISIBLE);
+                        switch (chatMessage.getSeen()) {
+                            case "true":
+                                viewHolderMessage.ivSeen.setImageResource(R.drawable.ic_circle_seen_blue);
+                                break;
+                            case "false":
+                                viewHolderMessage.ivSeen.setImageResource(R.drawable.ic_circle_seen);
+                                break;
+                        }
+                    } else {
 
+                        viewHolderMessage.layout.setGravity(Gravity.START);
+                        viewHolderMessage.tvName.setGravity(Gravity.START);
+                        viewHolderMessage.ivSeen.setVisibility(View.GONE);
+                        mChatReference.child(chatId).child(chatArray.get(i).id).child("seen").setValue("true");
                     }
-
 
                     viewHolderMessage.tvMessage.setText(chatMessage.getMessage());
                     break;
@@ -912,11 +1129,11 @@ public class ChatActivity extends AppCompatActivity {
             return -1;
         }
 
-        public class ViewHolderMessage extends RecyclerView.ViewHolder {
+        class ViewHolderMessage extends RecyclerView.ViewHolder {
 
             TextView tvName, tvMessage, tvTime;
 
-            ImageView ivMore;
+            ImageView ivMore, ivSeen;
             LinearLayout layout;
 
             public ViewHolderMessage(@NonNull View itemView) {
@@ -926,6 +1143,7 @@ public class ChatActivity extends AppCompatActivity {
                 tvName = itemView.findViewById(R.id.tv_lRCM_name);
                 tvTime = itemView.findViewById(R.id.tv_lRCM_time);
                 ivMore = itemView.findViewById(R.id.iv_LRCM_more);
+                ivSeen = itemView.findViewById(R.id.iv_LRCM_seen);
                 layout = itemView.findViewById(R.id.linLay_lRCM);
             }
 
@@ -953,14 +1171,10 @@ public class ChatActivity extends AppCompatActivity {
             return type;
         }
 
-        public void setType(String type) {
-            this.type = type;
-        }
-
     }
 
     @SuppressLint("StaticFieldLeak")
-    public class LoadChats extends AsyncTask<Void, Void, Void> {
+    public class LoadChatsFromDatabase extends AsyncTask<Void, Void, Void> {
 
         @Override
         protected Void doInBackground(Void... voids) {
@@ -969,11 +1183,13 @@ public class ChatActivity extends AppCompatActivity {
                 chatArray.clear();
                 chatMap.clear();
 
+                createTables();
                 chatDatabase = openOrCreateDatabase("chats", MODE_PRIVATE, null);
+
 
                 Cursor cursor = chatDatabase.rawQuery("Select * from user_" + id, null, null);
 
-                if (cursor == null) {
+                if (cursor == null || cursor.getCount() == 0) {
                     return null;
                 }
                 cursor.moveToFirst();
@@ -983,7 +1199,6 @@ public class ChatActivity extends AppCompatActivity {
                     String message_id = cursor.getString(idIdx);
                     String type = cursor.getString(typeIdx);
                     Cursor cursor1;
-                    //Thread.sleep(1);
                     switch (type) {
                         case "text":
                             cursor1 = chatDatabase.rawQuery("Select * from message_text where message_id='" + message_id + "'", null, null);
@@ -1000,7 +1215,6 @@ public class ChatActivity extends AppCompatActivity {
                             chatArray.add(new Pair(message_id, type));
                             chatMap.put(message_id, chatMessage);
                             publishProgress();
-
                             cursor1.close();
                             break;
                     }
@@ -1015,7 +1229,6 @@ public class ChatActivity extends AppCompatActivity {
             }
 
             return null;
-
         }
 
         @Override
@@ -1025,5 +1238,4 @@ public class ChatActivity extends AppCompatActivity {
             chatList.scrollToPosition(chatArray.size() - 1);
         }
     }
-
 }

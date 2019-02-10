@@ -38,6 +38,7 @@ class CommonFunctions {
 
     void downloadProfilePic(Context context, String userId, ImageView imageView, String imageUrl) {
 
+
         File parentFile = new File(Environment.getExternalStorageDirectory() + "/ConnectBase/ProfilePics/");
         parentFile.mkdirs();
         File imageFile = new File(parentFile, userId + ".jpg");
