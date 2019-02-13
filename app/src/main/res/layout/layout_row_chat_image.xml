@@ -1,21 +1,37 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="wrap_content"
+    android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
     android:id="@+id/linLay_lRCI"
-    android:padding="10dp">
+    android:paddingStart="5dp"
+    android:paddingEnd="3dp">
 
     <TextView
-        android:id="@+id/tv_lRCI_message"
+        android:id="@+id/tv_lRCI_name"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Name"
-        android:textColor="@color/colorPrimary" />
+        android:paddingStart="10dp"
+        android:paddingEnd="10dp"
+        android:textColor="@color/colorAccent" />
 
-    <RelativeLayout
-        android:layout_width="150dp"
-        android:layout_height="150dp">
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:orientation="vertical"
+        android:layout_height="wrap_content">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/layout_chat_background_message_orange"
+            android:padding="10dp"
+            android:layout_height="wrap_content">
+
+
+            <RelativeLayout
+                android:layout_width="180dp"
+                android:layout_height="180dp">
 
         <ImageView
             android:id="@+id/iv_lRCI_image"
@@ -35,18 +51,9 @@
             android:id="@+id/iv_lRCI_download"
             android:layout_width="48dp"
             android:layout_height="48dp"
-            android:layout_marginStart="50dp"
-            android:layout_marginTop="50dp"
+            android:layout_marginStart="70dp"
+            android:layout_marginTop="70dp"
             android:src="@drawable/ic_download" />
-
-        <ImageView
-            android:id="@+id/iv_lRCI_cancel"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:layout_marginStart="50dp"
-            android:layout_marginTop="50dp"
-            android:src="@drawable/ic_cross"
-            android:visibility="gone" />
 
     </RelativeLayout>
 
@@ -55,16 +62,33 @@
         style="?android:attr/progressBarStyleHorizontal"
         android:layout_width="match_parent"
         android:layout_height="3dp"
-        android:progress="20"
+        android:progress="0"
         android:progressBackgroundTint="@color/colorAccent" />
 
-    <TextView
-        android:id="@+id/tv_lRCI_desc"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:paddingRight="10dp"
-        android:text="Description"
-        android:textColor="@color/colorPrimary" />
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:orientation="horizontal"
+                android:layout_height="wrap_content">
+
+                <TextView
+                    android:id="@+id/tv_lRCI_desc"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:paddingStart="2dp"
+                    android:paddingEnd="8dp"
+                    android:layout_height="wrap_content"
+                    android:text="Description"
+                    android:textColor="@color/colorWhite" />
+
+                <ImageView
+                    android:layout_width="18dp"
+                    android:id="@+id/iv_lRCI_seen"
+                    android:src="@drawable/ic_circle_seen"
+                    android:visibility="gone"
+                    android:layout_height="24dp" />
+
+            </LinearLayout>
+        </LinearLayout>
 
     <TextView
         android:id="@+id/tv_lRCI_time"
@@ -74,5 +98,7 @@
         android:paddingRight="10dp"
         android:text="Time"
         android:textColor="@color/colorPrimary" />
+
+    </LinearLayout>
 
 </LinearLayout>

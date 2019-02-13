@@ -18,7 +18,10 @@ public class ZoomImageViewActivity extends AppCompatActivity {
         File imageFile = new File(imagePath);
         if (imageFile.exists())
             zoomageView.setImageURI(new CommonFunctions().getUriFromFile(getApplicationContext(), imageFile));
-        else zoomageView.setImageResource(R.drawable.avatar);
+        else {
+            finish();
+            //zoomageView.setImageResource(R.drawable.avatar);
+        }
 
     }
 }
