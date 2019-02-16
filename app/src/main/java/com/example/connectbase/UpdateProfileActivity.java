@@ -105,7 +105,7 @@ public class UpdateProfileActivity extends AppCompatActivity {
             CropImage.activity()
                     .setGuidelines(CropImageView.Guidelines.ON)
                     .setMinCropWindowSize(300, 300)
-                    .setOutputCompressQuality(40)
+                    .setOutputCompressQuality(20)
                     .setOutputCompressFormat(Bitmap.CompressFormat.JPEG)
                     .setAspectRatio(1, 1)
                     .setMaxZoom(5)
@@ -290,6 +290,7 @@ public class UpdateProfileActivity extends AppCompatActivity {
             if (resultCode == RESULT_OK) {
                 try {
                     final Uri resultUri = result.getUri();
+
                     uploadProfilePic(resultUri);
 
                 } catch (Exception e) {

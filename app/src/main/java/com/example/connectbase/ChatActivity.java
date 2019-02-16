@@ -4,13 +4,13 @@ import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.ProgressDialog;
 import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.content.ContentValues;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
-import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -22,11 +22,11 @@ import android.support.annotation.Nullable;
 import android.support.design.widget.BottomSheetDialog;
 import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
-import android.support.v4.app.NotificationCompat;
-import android.support.v4.app.NotificationManagerCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.view.menu.MenuBuilder;
+import android.support.v7.view.menu.MenuPopupHelper;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
@@ -92,6 +92,8 @@ public class ChatActivity extends AppCompatActivity {
     CommonFunctions commonFunctions = new CommonFunctions();
     SQLiteDatabase chatDatabase;
 
+    String lastKey;
+
     ArrayList<Pair> chatArray = new ArrayList<>();
     HashMap<String, Object> chatMap = new HashMap<>();
     ChatAdapter adapter;
@@ -133,6 +135,20 @@ public class ChatActivity extends AppCompatActivity {
         layoutManager.setStackFromEnd(true);
         layoutManager.setSmoothScrollbarEnabled(true);
         chatList.setLayoutManager(layoutManager);
+
+        ImageView scrollUp, scrollDown;
+        scrollDown = findViewById(R.id.btn_chat_gotoDown);
+        scrollUp = findViewById(R.id.btn_chat_gotoUp);
+
+
+        scrollDown.setOnClickListener(v -> {
+            if (chatArray.size() > 0)
+                chatList.smoothScrollToPosition(chatArray.size() - 1);
+        });
+        scrollUp.setOnClickListener(v -> {
+            if (chatArray.size() > 0)
+                chatList.smoothScrollToPosition(0);
+        });
 
         adapter = new ChatAdapter();
         chatList.setAdapter(adapter);
@@ -325,8 +341,12 @@ public class ChatActivity extends AppCompatActivity {
                             //sendFileMessage(data.getData());
                         } else if (data.getClipData() != null) {
                             ClipData clipData = data.getClipData();
-                            for (int i = 0; i < clipData.getItemCount(); i++)
-                                pathList.add(createFileFromUri(clipData.getItemAt(i).getUri(), "file").getPath());
+                            for (int i = 0; i < clipData.getItemCount(); i++) {
+                                File file = createFileFromUri(clipData.getItemAt(i).getUri(), "file");
+                                if (file != null) {
+                                    pathList.add(file.getPath());
+                                }
+                            }
                             //  sendFileMessage(clipData.getItemAt(i).getUri());
                         }
                         Intent intent = new Intent(this, ViewFilesActivity.class);
@@ -366,8 +386,7 @@ public class ChatActivity extends AppCompatActivity {
     private void sendFileMessage(String path, String desc) {
 
         File file = new File(path);
-        Uri fileUri = commonFunctions.getUriFromFile(getApplicationContext(), file);
-        Log.i("SendFile", fileUri.toString());
+
         if (!commonFunctions.checkInternetConnection(this)) {
             Snackbar.make(chatList, "No Internet Connection!!", Snackbar.LENGTH_SHORT).show();
             //TODO: Add queue of messages to send in future
@@ -384,7 +403,7 @@ public class ChatActivity extends AppCompatActivity {
             Snackbar.make(chatList, "File Not Found", Snackbar.LENGTH_SHORT).show();
             return;
         }
-        Log.i("ConnectBase Path", file.getPath());
+
 
         HashMap<String, Object> hashMap = new HashMap<>();
 
@@ -392,74 +411,15 @@ public class ChatActivity extends AppCompatActivity {
         hashMap.put("messageType", "file");
         hashMap.put("description", desc);
         hashMap.put("fileUrl", "");
-        hashMap.put("status", "");
+        hashMap.put("size", file.length());
         hashMap.put("fileName", file.getName());
         hashMap.put("time", ServerValue.TIMESTAMP);
         hashMap.put("seen", "false");
 
 
         String pushKey = mChatReference.child(chatId).push().getKey();
-
-        StorageReference fileReference = mChatFileReference.child(chatId).child(pushKey);
-
-        //TODO: add notification for progress of file uploading
-
-        UploadTask uploadTask = fileReference.putFile(fileUri);
-
-
-        //Notification for uploading files
-
-        int id = (int) new Date().getTime();
-        NotificationManagerCompat notificationManager = NotificationManagerCompat.from(this);
-
-        NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(this, ApplicationClass.NOTIFICATION_CHANNEL__UPLOAD);
-        notificationBuilder.setOngoing(true)
-                .setContentTitle("Uploading file...")
-                // .addAction()
-                .setCategory(NotificationCompat.CATEGORY_PROGRESS)
-                .setAutoCancel(false)
-                .setLargeIcon(BitmapFactory.decodeResource(getResources(), R.drawable.ic_upload))
-                .setSmallIcon(R.mipmap.ic_launcher)
-                .setProgress(100, 0, false);
-
-        uploadTask.addOnProgressListener(taskSnapshot -> {
-
-            int percent = (int) ((taskSnapshot.getBytesTransferred() * 1.0 / taskSnapshot.getTotalByteCount()) * 100);
-            Log.i("Progress", String.valueOf(percent));
-            notificationBuilder.setProgress(100, percent, false)
-                    .setContentText("Progress: " + percent + "%");
-            notificationManager.notify(id, notificationBuilder.build());
-
-        });
-
-
-        uploadTask.addOnCompleteListener(task -> {
-            if (task.isSuccessful()) {
-                fileReference.getDownloadUrl().addOnSuccessListener(uri1 -> {
-                    hashMap.put("fileUrl", uri1.toString());
-                    mChatReference.child(chatId).child(pushKey).setValue(hashMap);
-                    sendFileToSentFolder(file, "file");
-                    Snackbar.make(chatList, "Message Sent Successfully", Snackbar.LENGTH_SHORT).show();
-                    notificationManager.cancel(id);
-
-                    mChatReference.child(chatId).child(pushKey).addListenerForSingleValueEvent(new ValueEventListener() {
-                        @Override
-                        public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                            ChatFile chatFile = dataSnapshot.getValue(ChatFile.class);
-                            addMessageToDatabase(pushKey, chatFile, 1);
-                        }
-
-                        @Override
-                        public void onCancelled(@NonNull DatabaseError databaseError) {
-
-                        }
-                    });
-                });
-            } else {
-                Snackbar.make(chatList, task.getException().getMessage(), Snackbar.LENGTH_SHORT).show();
-            }
-        });
-
+        mChatReference.child(chatId).child(pushKey).setValue(hashMap);
+        sendFileToSentFolder(file, "file");
 
     }
 
@@ -559,64 +519,12 @@ public class ChatActivity extends AppCompatActivity {
         hashMap.put("imageName", imageFile.getName());
         hashMap.put("imageUrl", "");
         hashMap.put("thumbImage", "");
-        hashMap.put("status", "");
         hashMap.put("time", ServerValue.TIMESTAMP);
         hashMap.put("seen", "false");
 
         String pushKey = mChatReference.child(chatId).push().getKey();
         mChatReference.child(chatId).child(pushKey).setValue(hashMap);
         sendFileToSentFolder(imageFile, "image");
-
-/*
-        File thumbFile = commonFunctions.compressImage(this, imageFile, "/ConnectBase/temp/thumbImage", 250, 250, 25);
-
-        StorageReference imageReference = mChatImageReference.child(chatId).child(pushKey + ".jpg");
-        StorageReference thumbImageReference = mChatImageReference.child(chatId).child("ThumbImage").child(pushKey + ".jpg");
-
-        Uri thumbImageUri = commonFunctions.getUriFromFile(getApplicationContext(), thumbFile);
-
-
-        //TODO: add notification for progress of image uploading
-
-
-        imageReference.putFile(commonFunctions.getUriFromFile(getApplicationContext(), imageFile)).addOnCompleteListener(task -> {
-            if (task.isSuccessful()) {
-                imageReference.getDownloadUrl().addOnSuccessListener(uri -> {
-                    hashMap.put("imageUrl", uri.toString());
-                    thumbImageReference.putFile(thumbImageUri).addOnCompleteListener(task1 -> {
-                        if (task1.isSuccessful()) {
-                            thumbImageReference.getDownloadUrl().addOnSuccessListener(uri1 -> {
-                                hashMap.put("thumbImage", uri1.toString());
-                                mChatReference.child(chatId).child(pushKey).setValue(hashMap);
-
-                                mChatReference.child(chatId).child(pushKey).addListenerForSingleValueEvent(new ValueEventListener() {
-                                    @Override
-                                    public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                                        ChatImage chatImage = dataSnapshot.getValue(ChatImage.class);
-                                        addMessageToDatabase(pushKey, chatImage, 1);
-                                    }
-
-                                    @Override
-                                    public void onCancelled(@NonNull DatabaseError databaseError) {
-
-                                    }
-                                });
-
-                                Snackbar.make(chatList, "Message Sent Successfully", Snackbar.LENGTH_SHORT).show();
-                                thumbFile.delete();
-                                sendFileToSentFolder(imageFile, "image");
-
-                                //TODO: Notify Adapter about dataset change
-                            });
-                        } else
-                            commonFunctions.showErrorDialog(this, task1.getException().getMessage());
-                    });
-                });
-            } else commonFunctions.showErrorDialog(this, task.getException().getMessage());
-
-        });
-*/
-
 
     }
 
@@ -741,7 +649,7 @@ public class ChatActivity extends AppCompatActivity {
                 new ClearChats().execute();
                 break;
             case R.id.menu_chat_generatetext:
-                for (int i = 1; i <= 20; i++)
+                for (int i = 1; i <= 50; i++)
                     sendMessage("Message (" + i + ")");
                 break;
             case R.id.menu_chat_clearSharedpref:
@@ -783,7 +691,6 @@ public class ChatActivity extends AppCompatActivity {
                 values.put("imageUrl", chatImage.getImageUrl());
                 values.put("imageName", chatImage.getImageName());
                 values.put("thumbImage", chatImage.getThumbImage());
-                values.put("status", chatImage.getStatus());
                 values.put("time", chatImage.getTime());
                 values.put("seen", chatImage.getSeen());
                 seen = chatImage.getSeen();
@@ -796,8 +703,8 @@ public class ChatActivity extends AppCompatActivity {
                 values.put("description", chatFile.getDescription());
                 values.put("fileUrl", chatFile.getFileUrl());
                 values.put("fileName", chatFile.getFileName());
-                values.put("status", chatFile.getStatus());
                 values.put("time", chatFile.getTime());
+                values.put("size", chatFile.getSize());
                 values.put("seen", chatFile.getSeen());
                 seen = chatFile.getSeen();
                 type = "file";
@@ -839,6 +746,7 @@ public class ChatActivity extends AppCompatActivity {
 
                     adapter.notifyItemChanged(index);
                     updateSharedPreference(msgId);
+
                 } else if (type.equals("image")) {
                     ChatImage chatImage = (ChatImage) object;
                     if (chatImage.getImageUrl().isEmpty())
@@ -855,6 +763,21 @@ public class ChatActivity extends AppCompatActivity {
                             index = i;
                     adapter.notifyItemChanged(index);
 
+                } else if (type.equals("file")) {
+                    ChatFile chatFile = (ChatFile) object;
+
+                    if (chatFile.getFileUrl().isEmpty())
+                        return;
+                    String fileUrl = chatFile.getFileUrl();
+
+                    chatDatabase.execSQL("update message_file set fileUrl='" + fileUrl + "'where message_id='" + msgId + "'");
+
+                    chatMap.put(msgId, object);
+                    int index = -1;
+                    for (int i = 0; i < chatArray.size(); i++)
+                        if (chatArray.get(i).getId().equals(msgId))
+                            index = i;
+                    adapter.notifyItemChanged(index);
                 }
             }
         } catch (Exception e) {
@@ -877,16 +800,15 @@ public class ChatActivity extends AppCompatActivity {
 
         chatDatabase.execSQL("CREATE TABLE if not exists message_text('message_id' varchar NOT NULL ,'message' varchar NOT NULL,'sender' varchar NOT NULL,'time' varchar NOT NULL,'seen' varchar NOT NULL,PRIMARY KEY ('message_id'))");
 
-        chatDatabase.execSQL("CREATE TABLE if not exists 'message_image' ('message_id' VARCHAR NOT NULL,'sender' VARCHAR NOT NULL,'description' VARCHAR NOT NULL,'imageName' VARCHAR NOT NULL,'imageUrl' VARCHAR NOT NULL,'thumbImage' VARCHAR NOT NULL,'status' VARCHAR NOT NULL,'time' varchar NOT NULL,'seen' VARCHAR NOT NULL,PRIMARY KEY ('message_id'))");
+        chatDatabase.execSQL("CREATE TABLE if not exists 'message_image' ('message_id' VARCHAR NOT NULL,'sender' VARCHAR NOT NULL,'description' VARCHAR NOT NULL,'imageName' VARCHAR NOT NULL,'imageUrl' VARCHAR NOT NULL,'thumbImage' VARCHAR NOT NULL,'time' varchar NOT NULL,'seen' VARCHAR NOT NULL,PRIMARY KEY ('message_id'))");
 
-        chatDatabase.execSQL("CREATE TABLE if not exists 'message_file' ('message_id' VARCHAR NOT NULL,'sender' VARCHAR NOT NULL,'description' VARCHAR NOT NULL,'fileName' VARCHAR NOT NULL,'fileUrl' VARCHAR NOT NULL,'status' VARCHAR NOT NULL,'time' varchar NOT NULL,'seen' VARCHAR NOT NULL,PRIMARY KEY ('message_id'))");
+        chatDatabase.execSQL("CREATE TABLE if not exists 'message_file' ('message_id' VARCHAR NOT NULL,'sender' VARCHAR NOT NULL,'description' VARCHAR NOT NULL,'fileName' VARCHAR NOT NULL,'fileUrl' VARCHAR NOT NULL,'size' VARCHAR NOT NULL,'time' varchar NOT NULL,'seen' VARCHAR NOT NULL,PRIMARY KEY ('message_id'))");
 
-        //message_id,sender,description,imageName,imageUrl,thumbImage,status,time,seen
     }
 
     void loadOnlineMessages() {
 
-        String lastKey = sharedPreferences.getString("user_" + id + "_message_id", "");
+        lastKey = sharedPreferences.getString("user_" + id + "_message_id", "");
 
         if (lastKey.isEmpty()) {
             chatQuery = mChatReference.child(chatId).orderByKey();
@@ -1004,9 +926,10 @@ public class ChatActivity extends AppCompatActivity {
         @Override
         protected void onPostExecute(Void aVoid) {
             super.onPostExecute(aVoid);
+            int size = chatArray.size();
             chatArray.clear();
             chatMap.clear();
-            adapter.notifyDataSetChanged();
+            adapter.notifyItemRangeRemoved(0, size);
             dialog.dismiss();
         }
 
@@ -1038,7 +961,8 @@ public class ChatActivity extends AppCompatActivity {
                     View view1 = inflater.inflate(R.layout.layout_row_chat_image, viewGroup, false);
                     return new ViewHolderImage(view1);
                 case 2:
-                    return null;
+                    View view2 = inflater.inflate(R.layout.layout_row_chat_file, viewGroup, false);
+                    return new ViewHolderFile(view2);
             }
             return null;
         }
@@ -1080,11 +1004,14 @@ public class ChatActivity extends AppCompatActivity {
                             mChatReference.child(chatId).child(chatArray.get(i).id).child("seen").setValue("true");
                     }
 
+                    viewHolderMessage.ivMore.setOnClickListener(v -> {
+                        showPopupMenu(v, 0, i);
+                    });
+
                     viewHolderMessage.tvMessage.setText(chatMessage.getMessage());
                     break;
 
                 case 1:
-                    Log.i("ImageItem", "true");
                     ChatImage chatImage = ((ChatImage) object);
                     ViewHolderImage viewHolderImage = ((ViewHolderImage) viewHolder);
                     String sender1 = chatImage.getSender().equals(currentId) ? "You" : user.getName();
@@ -1116,14 +1043,16 @@ public class ChatActivity extends AppCompatActivity {
                             uploadStarted.put(msgId, true);
 
                             File imageFile = new File(Environment.getExternalStorageDirectory() + "/ConnectBase/Media/Images/sent/" + chatImage.getImageName());
-                            File thumbFile = commonFunctions.compressImage(ChatActivity.this, imageFile, "/ConnectBase/temp/thumbImage", 200, 200, 15);
+                            File thumbFile = commonFunctions.compressImage(ChatActivity.this, imageFile, "/ConnectBase/temp/thumbImage", 180, 180, 10);
 
 
                             StorageReference imageReference = mChatImageReference.child(chatId).child(msgId + ".jpg");
                             StorageReference thumbImageReference = mChatImageReference.child(chatId).child("ThumbImage").child(msgId + ".jpg");
                             Uri thumbImageUri = commonFunctions.getUriFromFile(getApplicationContext(), thumbFile);
                             Uri imageUri = commonFunctions.getUriFromFile(getApplicationContext(), imageFile);
+
                             viewHolderImage.ivPic.setImageURI(imageUri);
+
                             HashMap<String, Object> hashMap = new HashMap<>();
                             thumbImageReference.putFile(thumbImageUri).addOnSuccessListener(taskSnapshot -> {
                                 thumbImageReference.getDownloadUrl().addOnSuccessListener(uri -> {
@@ -1155,7 +1084,11 @@ public class ChatActivity extends AppCompatActivity {
                                 Uri imageUri = commonFunctions.getUriFromFile(getApplicationContext(), imageFile);
                                 viewHolderImage.ivPic.setImageURI(imageUri);
                             } else {
-                                //TODO: image sent but doesnt exist in storage;
+                                File thumbFile = new File(Environment.getExternalStorageDirectory() + "/ConnectBase/temp/thumbImage/" + chatImage.getImageName());
+
+                                if (thumbFile.exists()) {
+                                    viewHolderImage.ivPic.setImageURI(commonFunctions.getUriFromFile(getApplicationContext(), thumbFile));
+                                }
                             }
                         }
                     } else {
@@ -1175,6 +1108,7 @@ public class ChatActivity extends AppCompatActivity {
                         if (imageFile.exists()) {
                             Uri imageUri = commonFunctions.getUriFromFile(getApplicationContext(), imageFile);
                             viewHolderImage.ivPic.setImageURI(imageUri);
+
                             viewHolderImage.progressBar.setProgress(100);
                             viewHolderImage.ivPic.setClickable(true);
 
@@ -1186,6 +1120,7 @@ public class ChatActivity extends AppCompatActivity {
                             }
 
                             viewHolderImage.ivDownload.setVisibility(View.VISIBLE);
+
                             viewHolderImage.ivDownload.setOnClickListener(v -> {
 
                                 FileDownloadTask downloadTask = mChatImageReference.child(chatId).child(msgId + ".jpg").getFile(imageFile);
@@ -1214,6 +1149,142 @@ public class ChatActivity extends AppCompatActivity {
                         else imageFile = new File(parent, "/received/" + chatImage.getImageName());
                         startActivity(new Intent(ChatActivity.this, ZoomImageViewActivity.class).putExtra("path", imageFile.getPath()));
                     });
+                    break;
+
+                case 2:
+                    ChatFile chatFile = ((ChatFile) object);
+                    ViewHolderFile viewHolderFile = ((ViewHolderFile) viewHolder);
+                    viewHolderFile.tvTime.setText(commonFunctions.convertTime(chatFile.getTime(), true));
+
+                    String sender2 = chatFile.getSender().equals(currentId) ? "You" : user.getName();
+                    viewHolderFile.tvName.setText(sender2);
+                    viewHolderFile.tvTime.setText(commonFunctions.convertTime(chatFile.getTime(), true));
+                    String name = chatFile.getFileName().substring(0, chatFile.getFileName().lastIndexOf(".") - 1);
+                    String extension = chatFile.getFileName().substring(chatFile.getFileName().lastIndexOf(".") + 1);
+                    if (name.length() > 10)
+                        name = name.substring(0, 10) + "...";
+
+                    String type = extension;
+                    switch (extension) {
+                        case "jpg":
+                            type = "Image";
+                            break;
+                        case "mp3":
+                            type = "Audio";
+                            break;
+                        case "mp4":
+                            type = "Video";
+                            break;
+                        case "pdf":
+                            type = "Document/PDF";
+                            break;
+                    }
+                    double size = chatFile.getSize() / (1024 * 1024.0);
+
+                    String desc = chatFile.getDescription();
+                    String details = "Name: " + name
+                            + "\nType: " + type
+                            + "\nSize: " + Math.round(size * 100) / 100.0 + " MB";
+                    if (!desc.isEmpty())
+                        details += "\nDesc: " + desc;
+
+                    viewHolderFile.tvFileDetails.setText(details);
+
+
+                    if (sender2.equals("You")) {
+                        viewHolderFile.ivDownload.setVisibility(View.GONE);
+                        viewHolderFile.layout.setGravity(Gravity.END);
+                        viewHolderFile.tvName.setGravity(Gravity.END);
+
+                        if (chatFile.getFileUrl().isEmpty()) {
+                            viewHolderFile.ivSeen.setVisibility(View.GONE);
+
+                            if (uploadStarted.get(msgId) != null && uploadStarted.get(msgId))
+                                return;
+                            uploadStarted.put(msgId, true);
+
+                            File file = new File(Environment.getExternalStorageDirectory() + "/ConnectBase/Media/Files/sent/" + chatFile.getFileName());
+
+                            UploadTask uploadTask = mChatFileReference.child(chatId).child(msgId).putFile(commonFunctions.getUriFromFile(getApplicationContext(), file));
+
+                            uploadTask.addOnProgressListener(taskSnapshot -> {
+                                int progress = (int) ((taskSnapshot.getBytesTransferred() * 1.0 / taskSnapshot.getTotalByteCount()) * 100);
+                                viewHolderFile.progressBar.setProgress(progress);
+                            });
+
+                            uploadTask.addOnSuccessListener(taskSnapshot -> {
+                                HashMap<String, Object> hashMap = new HashMap<>();
+                                mChatFileReference.child(chatId).child(msgId).getDownloadUrl().addOnSuccessListener(uri -> {
+                                    hashMap.put("fileUrl", uri.toString());
+                                    mChatReference.child(chatId).child(msgId).updateChildren(hashMap);
+                                    notifyItemChanged(i);
+                                });
+                            });
+
+                        } else {
+                            viewHolderFile.progressBar.setProgress(100);
+                            if (chatFile.getSeen().equals("true")) {
+                                viewHolderFile.ivSeen.setVisibility(View.VISIBLE);
+                                viewHolderFile.ivSeen.setImageResource(R.drawable.ic_circle_seen_blue);
+                            } else if (chatFile.getSeen().equals("false")) {
+                                viewHolderFile.ivSeen.setVisibility(View.VISIBLE);
+                                viewHolderFile.ivSeen.setImageResource(R.drawable.ic_circle_seen);
+                            }
+                        }
+
+                    } else {
+                        viewHolderFile.layout.setGravity(Gravity.START);
+                        viewHolderFile.tvName.setGravity(Gravity.START);
+                        if (chatFile.getSeen().equals("false"))
+                            mChatReference.child(chatId).child(msgId).child("seen").setValue("true");
+                        viewHolderFile.ivSeen.setVisibility(View.GONE);
+
+                        File parentFile = new File(Environment.getExternalStorageDirectory() + "/ConnectBase/Media/Files/received/");
+                        parentFile.mkdirs();
+                        File file = new File(parentFile, chatFile.getFileName());
+
+                        if (!file.exists()) {
+                            viewHolderFile.ivDownload.setVisibility(View.VISIBLE);
+                            viewHolderFile.progressBar.setProgress(0);
+
+                            viewHolderFile.ivDownload.setOnClickListener(v -> {
+
+                                FileDownloadTask downloadTask = mChatFileReference.child(chatId).child(msgId).getFile(file);
+                                viewHolderFile.ivDownload.setVisibility(View.GONE);
+
+                                downloadTask.addOnSuccessListener(taskSnapshot -> {
+                                    notifyItemChanged(i);
+                                });
+
+                                downloadTask.addOnProgressListener(taskSnapshot -> {
+                                    int progress = (int) (taskSnapshot.getBytesTransferred() * 1.0 / taskSnapshot.getTotalByteCount()) * 100;
+                                    viewHolderFile.progressBar.setProgress(progress);
+                                });
+
+                            });
+
+                        } else {
+                            viewHolderFile.ivDownload.setVisibility(View.GONE);
+                            viewHolderFile.progressBar.setProgress(100);
+                        }
+
+                    }
+
+                    viewHolderFile.layout.setOnClickListener(v -> {
+                        String path = Environment.getExternalStorageDirectory() + "/ConnectBase/Media/Files/";
+                        if (sender2.equals("You")) {
+                            path += "sent/";
+                        } else path += "received/";
+                        path += chatFile.fileName;
+                        File file = new File(path);
+                        if (file.exists()) {
+                            Intent intent = new Intent(Intent.ACTION_VIEW);
+                            intent.setDataAndTypeAndNormalize(commonFunctions.getUriFromFile(getApplicationContext(), file), "*/*");
+                            intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                            startActivity(Intent.createChooser(intent, "Choose an Application to open with.."));
+                        }
+                    });
+
 
                     break;
 
@@ -1280,13 +1351,37 @@ public class ChatActivity extends AppCompatActivity {
                 progressBar = itemView.findViewById(R.id.pb_lRCI_progress);
             }
         }
+
+        class ViewHolderFile extends RecyclerView.ViewHolder {
+
+            TextView tvName, tvFileDetails, tvTime;
+            LinearLayout layout;
+            ImageView ivSeen, ivMore, ivDownload;
+            ProgressBar progressBar;
+
+            ViewHolderFile(@NonNull View itemView) {
+                super(itemView);
+                tvName = itemView.findViewById(R.id.tv_lRCF_name);
+                tvFileDetails = itemView.findViewById(R.id.tv_lRCF_file);
+                tvTime = itemView.findViewById(R.id.tv_lRCF_time);
+
+                layout = itemView.findViewById(R.id.linLay_lRCF);
+                ivSeen = itemView.findViewById(R.id.iv_lRCF_seen);
+                ivDownload = itemView.findViewById(R.id.iv_lRCF_download);
+                ivMore = itemView.findViewById(R.id.iv_lRCF_more);
+                progressBar = itemView.findViewById(R.id.pb_lRCF_progress);
+
+            }
+
+        }
     }
 
     public class Pair {
 
 
         private String id, type;
-        public Pair(String id, String type) {
+
+        Pair(String id, String type) {
             this.id = id;
             this.type = type;
         }
@@ -1360,7 +1455,6 @@ public class ChatActivity extends AppCompatActivity {
                             int imgNameIdx = cursor1.getColumnIndex("imageName");
                             int imgUrlIdx = cursor1.getColumnIndex("imageUrl");
                             int thumbIdx = cursor1.getColumnIndex("thumbImage");
-                            int statusIdx = cursor1.getColumnIndex("status");
                             cursor1.moveToFirst();
                             ChatImage chatImage = new ChatImage(cursor1.getString(senderIdx),
                                     "image",
@@ -1369,7 +1463,6 @@ public class ChatActivity extends AppCompatActivity {
                                     cursor1.getString(imgUrlIdx),
                                     cursor1.getString(thumbIdx),
                                     Long.parseLong(cursor1.getString(timeIdx)),
-                                    cursor1.getString(statusIdx),
                                     cursor1.getString(seenIdx)
                             );
                             chatArray.add(new Pair(message_id, type));
@@ -1377,7 +1470,32 @@ public class ChatActivity extends AppCompatActivity {
                             publishProgress();
                             cursor1.close();
                             break;
+
+                        case "file":
+                            cursor1 = chatDatabase.rawQuery("Select * from message_file where message_id='" + message_id + "'", null, null);
+                            descIdx = cursor1.getColumnIndex("description");
+                            senderIdx = cursor1.getColumnIndex("sender");
+                            timeIdx = cursor1.getColumnIndex("time");
+                            seenIdx = cursor1.getColumnIndex("seen");
+                            int fileNameIdx = cursor1.getColumnIndex("fileName");
+                            int fileUrlIdx = cursor1.getColumnIndex("fileUrl");
+                            int sizeIdx = cursor1.getColumnIndex("size");
+                            cursor1.moveToFirst();
+                            ChatFile chatFile = new ChatFile(cursor1.getString(senderIdx),
+                                    "file",
+                                    cursor1.getString(descIdx),
+                                    cursor1.getString(fileUrlIdx),
+                                    Long.parseLong(cursor1.getString(timeIdx)),
+                                    cursor1.getString(fileNameIdx),
+                                    cursor1.getString(seenIdx),
+                                    Long.parseLong(cursor1.getString(sizeIdx)));
+                            chatArray.add(new Pair(message_id, type));
+                            chatMap.put(message_id, chatFile);
+                            publishProgress();
+                            cursor1.close();
+                            break;
                     }
+
 
                 }
                 while (cursor.moveToNext());
@@ -1418,17 +1536,32 @@ public class ChatActivity extends AppCompatActivity {
                         addMessageToDatabase(key, chatMessage, sentKey);
                         break;
                     case "image":
+                        ChatImage chatImage = dataSnapshot.getValue(ChatImage.class);
                         if (sender.equals(currentId)) {
-                            ChatImage chatImage = dataSnapshot.getValue(ChatImage.class);
-                            addMessageToDatabase(key, chatImage, 0);
+                            if (chatImage.getImageUrl().isEmpty())
+                                addMessageToDatabase(key, chatImage, 0);
+                            else addMessageToDatabase(key, chatImage, 1);
                         } else {
                             String image = dataSnapshot.child("imageUrl").getValue().toString();
                             if (!image.isEmpty()) {
-                                ChatImage chatImage = dataSnapshot.getValue(ChatImage.class);
                                 addMessageToDatabase(key, chatImage, -1);
                             }
                         }
                         break;
+
+                    case "file":
+                        ChatFile chatFile = dataSnapshot.getValue(ChatFile.class);
+                        if (sender.equals(currentId)) {
+                            if (chatFile.getFileUrl().isEmpty())
+                                addMessageToDatabase(key, chatFile, 0);
+                            else addMessageToDatabase(key, chatFile, 1);
+                        } else {
+                            if (!chatFile.getFileUrl().isEmpty()) {
+                                addMessageToDatabase(key, chatFile, -1);
+                            }
+                        }
+                        break;
+
 
                 }
             }
@@ -1457,17 +1590,35 @@ public class ChatActivity extends AppCompatActivity {
                         if (!image.isEmpty())
                             addMessageToDatabase(key, dataSnapshot.getValue(ChatImage.class), 1);
                         break;
+                    case "file":
+                        if (!dataSnapshot.child("fileUrl").getValue().toString().isEmpty())
+                            addMessageToDatabase(key, dataSnapshot.getValue(ChatFile.class), 1);
+                        break;
                 }
             } else {
                 switch (type) {
+                    case "text":
+                        ChatMessage chatMessage = dataSnapshot.getValue(ChatMessage.class);
+                        addMessageToDatabase(key, chatMessage, 1);
+                        break;
                     case "image":
                         String image = dataSnapshot.child("imageUrl").getValue().toString();
                         String thumbImage = dataSnapshot.child("thumbImage").getValue().toString();
                         if (!image.isEmpty() && !thumbImage.isEmpty()) {
-                            downloadThumbImage(dataSnapshot.getKey());
-                            ChatImage chatImage = dataSnapshot.getValue(ChatImage.class);
-                            new Handler().postDelayed(() -> addMessageToDatabase(key, chatImage, -1), 1000);
+                            File parentFile = new File(Environment.getExternalStorageDirectory() + "/ConnectBase/temp/thumbImage/");
+                            parentFile.mkdirs();
+                            File thumbFile = new File(parentFile, key + ".jpg");
+
+                            mChatImageReference.child(chatId).child("ThumbImage").child(key + ".jpg").getFile(thumbFile).addOnSuccessListener(taskSnapshot -> {
+                                ChatImage chatImage = dataSnapshot.getValue(ChatImage.class);
+                                addMessageToDatabase(key, chatImage, -1);
+                            });
                         }
+                        break;
+
+                    case "file":
+                        if (!dataSnapshot.child("fileUrl").getValue().toString().isEmpty())
+                            addMessageToDatabase(key, dataSnapshot.getValue(ChatFile.class), 1);
                         break;
                 }
             }
@@ -1490,15 +1641,55 @@ public class ChatActivity extends AppCompatActivity {
         }
     };
 
-    private void downloadThumbImage(String key) {
+    @SuppressLint("RestrictedApi")
+    void showPopupMenu(View view, int choice, int position) {
 
-        File parentFile = new File(Environment.getExternalStorageDirectory() + "/ConnectBase/temp/thumbImage/");
-        parentFile.mkdirs();
-        File thumbFile = new File(parentFile, key + ".jpg");
-        Log.i("DownloadStarted", "true");
-        mChatImageReference.child(chatId).child("ThumbImage").child(key + ".jpg").getFile(thumbFile);
+
+        MenuBuilder menuBuilder = new MenuBuilder(this);
+        ClipboardManager clipboardManager = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+        MenuPopupHelper menuPopupHelper;
+
+        switch (choice) {
+            case 0:
+
+                getMenuInflater().inflate(R.menu.menu_popup_chat_message, menuBuilder);
+
+                menuPopupHelper = new MenuPopupHelper(this, menuBuilder, view);
+                menuPopupHelper.setForceShowIcon(true);
+                menuPopupHelper.show();
+
+                menuBuilder.setCallback(new MenuBuilder.Callback() {
+                    @Override
+                    public boolean onMenuItemSelected(MenuBuilder menuBuilder, MenuItem menuItem) {
+                        switch (menuItem.getItemId()) {
+                            case R.id.menu_pCM_copy:
+                                String message = ((ChatMessage) chatMap.get(chatArray.get(position).getId())).getMessage();
+                                ClipData clipData = ClipData.newPlainText("message", message);
+                                clipboardManager.setPrimaryClip(clipData);
+                                Snackbar.make(chatList, "Copied", Snackbar.LENGTH_SHORT).show();
+                                return true;
+
+                            case R.id.menu_pCM_forward:
+                                return true;
+                            case R.id.menu_pCM_info:
+                                return true;
+                            //TODO Complete methods
+
+                        }
+                        return false;
+                    }
+
+                    @Override
+                    public void onMenuModeChange(MenuBuilder menuBuilder) {
+
+                    }
+                });
+
+                break;
+        }
 
     }
+
 }
 
 /*if(ContextCompat.checkSelfPermission(this,Manifest.permission.WRITE_EXTERNAL_STORAGE)!=PackageManager.PERMISSION_GRANTED){

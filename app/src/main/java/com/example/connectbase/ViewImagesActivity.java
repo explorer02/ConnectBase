@@ -148,6 +148,7 @@ public class ViewImagesActivity extends AppCompatActivity {
 
         @Override
         public void onBindViewHolder(@NonNull ViewHolder viewHolder, int i) {
+
             viewHolder.ivPic.setImageURI(commonFunctions.getUriFromFile(getApplicationContext(), new File(compressedPathList.get(i))));
             int pos = viewHolder.getAdapterPosition();
 

@@ -6,6 +6,15 @@ public class Todo {
 
 
     /* Changes
+    Slight updates here and there
+    Added menu to chat type: Messages options: Copy,forward,details
+    Removed status attribute from file and image type messages
+    Added size attribute to file type messages
+    Added send file
+    Added receive file
+    Added seen for file type chats
+    updated resources files
+
 
 
      */

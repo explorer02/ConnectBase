@@ -1,86 +1,85 @@
 package com.example.connectbase;
 
-public class ChatFile {
+class ChatFile {
 
-    private String sender, messageType, description, fileUrl, status, fileName, seen;
-    private long time;
+    public String sender, messageType, description, fileUrl, fileName, seen;
+    public long time, size;
 
-    public ChatFile() {
-    }
-
-
-    public ChatFile(String sender, String messageType, String description, String file, long time, String status, String filename, String seen) {
+    ChatFile(String sender, String messageType, String description, String fileUrl, long time, String filename, String seen, long size) {
         this.sender = sender;
         this.messageType = messageType;
         this.description = description;
-        this.fileUrl = file;
+        this.fileUrl = fileUrl;
         this.time = time;
-        this.status = status;
         this.fileName = filename;
         this.seen = seen;
+        this.size = size;
     }
 
-    public String getSender() {
+    ChatFile() {
+    }
+
+    String getSender() {
         return sender;
     }
 
-    public void setSender(String sender) {
+    void setSender(String sender) {
         this.sender = sender;
     }
 
-    public String getMessageType() {
+    String getMessageType() {
         return messageType;
     }
 
-    public void setMessageType(String messageType) {
+    void setMessageType(String messageType) {
         this.messageType = messageType;
     }
 
-    public String getDescription() {
+    String getDescription() {
         return description;
     }
 
-    public void setDescription(String description) {
+    void setDescription(String description) {
         this.description = description;
     }
 
-    public String getFileUrl() {
+    String getFileUrl() {
         return fileUrl;
     }
 
-    public void setFileUrl(String fileUrl) {
+    void setFileUrl(String fileUrl) {
         this.fileUrl = fileUrl;
     }
 
-    public long getTime() {
+    long getTime() {
         return time;
     }
 
-    public void setTime(long time) {
+    void setTime(long time) {
         this.time = time;
     }
 
-    public String getStatus() {
-        return status;
-    }
-
-    public void setStatus(String status) {
-        this.status = status;
-    }
-
-    public String getFileName() {
+    String getFileName() {
         return fileName;
     }
 
-    public void setFileName(String fileName) {
+    void setFileName(String fileName) {
         this.fileName = fileName;
     }
 
-    public String getSeen() {
+    String getSeen() {
         return seen;
     }
 
-    public void setSeen(String seen) {
+    void setSeen(String seen) {
         this.seen = seen;
+    }
+
+    public long getSize() {
+        return size;
+    }
+
+    public void setSize(long size) {
+        this.size = size;
     }
 }

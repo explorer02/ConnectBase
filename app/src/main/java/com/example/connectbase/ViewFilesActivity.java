@@ -1,5 +1,6 @@
 package com.example.connectbase;
 
+import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -46,7 +47,7 @@ public class ViewFilesActivity extends AppCompatActivity {
         fileList.swapAdapter(adapter, true);
         new LoadFiles().execute();
 
-        fabDoneEditing.setOnClickListener(v -> doneEditing(v));
+        fabDoneEditing.setOnClickListener(this::doneEditing);
 
     }
 
@@ -105,8 +106,8 @@ public class ViewFilesActivity extends AppCompatActivity {
 
             viewHolder.ivDelete.setOnClickListener(v -> {
                 File file = new File(pathList.get(pos));
-                if (file.exists()) ;
-                file.delete();
+                if (file.exists())
+                    file.delete();
                 pathList.remove(pos);
                 fileModelArrayList.remove(pos);
                 notifyItemRemoved(pos);
@@ -147,12 +148,12 @@ public class ViewFilesActivity extends AppCompatActivity {
             return fileModelArrayList.size();
         }
 
-        public class ViewHolder extends RecyclerView.ViewHolder {
+        class ViewHolder extends RecyclerView.ViewHolder {
 
-            public TextView tvName, tvSize, tvDesc, tvType;
+            TextView tvName, tvSize, tvDesc, tvType;
             ImageView ivDelete, ivEdit;
 
-            public ViewHolder(@NonNull View itemView) {
+            ViewHolder(@NonNull View itemView) {
                 super(itemView);
                 tvName = itemView.findViewById(R.id.tv_lRVF_name);
                 tvDesc = itemView.findViewById(R.id.tv_lRVF_desc);
@@ -168,7 +169,7 @@ public class ViewFilesActivity extends AppCompatActivity {
 
         private String name, size, type, desc;
 
-        public FileModel(String name, String size, String type, String desc) {
+        FileModel(String name, String size, String type, String desc) {
             this.name = name;
             this.size = size;
             this.type = type;
@@ -188,15 +189,16 @@ public class ViewFilesActivity extends AppCompatActivity {
             return type;
         }
 
-        public String getDesc() {
+        String getDesc() {
             return desc;
         }
 
-        public void setDesc(String desc) {
+        void setDesc(String desc) {
             this.desc = desc;
         }
     }
 
+    @SuppressLint("StaticFieldLeak")
     public class LoadFiles extends AsyncTask<Void, Void, Void> {
 
         @Override
@@ -216,9 +218,10 @@ public class ViewFilesActivity extends AppCompatActivity {
                 fileSize /= 1024;
                 if (fileSize < 1024)
                     size = "Size: " + fileSize + " KB";
-                if (fileSize > 1024)
-                    size = "Size: " + fileSize / 1024 + " MB";
-
+                if (fileSize > 1024) {
+                    double x = fileSize / 1024.0;
+                    size = "Size: " + (Math.round(x * 100)) / 100 + " MB";
+                }
                 String type = "Type: " + file.getName().substring(file.getName().lastIndexOf(".") + 1);
                 String desc = "Description:";
 

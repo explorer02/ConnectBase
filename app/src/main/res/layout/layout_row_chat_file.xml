@@ -1,20 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="wrap_content"
+    android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
     android:id="@+id/linLay_lRCF"
-    android:padding="10dp">
+    android:paddingStart="10dp"
+    android:paddingEnd="10dp">
 
     <TextView
         android:id="@+id/tv_lRCF_name"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Name"
-        android:textColor="@color/colorPrimary" />
+        android:textColor="@color/colorAccent" />
 
     <LinearLayout
-        android:layout_width="match_parent"
+        android:layout_width="wrap_content"
+        android:orientation="vertical"
+        android:layout_height="wrap_content">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:background="@drawable/layout_chat_background_message_orange"
         android:orientation="horizontal">
@@ -24,43 +30,51 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:maxWidth="200dp"
+            android:paddingStart="5dp"
             android:padding="5dp"
-            android:text="File.............."
+            android:text="File..............
+Type:Audio
+Size:120141"
             android:textColor="@color/colorWhite" />
 
         <ImageView
             android:id="@+id/iv_lRCF_download"
             android:layout_width="24dp"
-            android:layout_height="24dp"
-            android:layout_marginStart="10dp"
+            android:layout_height="match_parent"
+            android:layout_gravity="center"
             android:layout_marginTop="2dp"
-            android:layout_marginEnd="10dp"
             android:src="@drawable/ic_download" />
 
-        <ImageView
-            android:id="@+id/iv_lRCF_cancel"
-            android:layout_width="24dp"
-            android:layout_height="24dp"
-            android:layout_marginStart="10dp"
-            android:layout_marginTop="2dp"
-            android:layout_marginEnd="10dp"
-            android:src="@drawable/ic_cross"
-            android:visibility="gone" />
-
+            <RelativeLayout
+                android:layout_width="wrap_content"
+                android:orientation="vertical"
+                android:layout_height="match_parent">
         <ImageView
             android:id="@+id/iv_lRCF_more"
             android:layout_width="24dp"
             android:layout_height="24dp"
             android:src="@drawable/ic_more" />
 
-    </LinearLayout>
+                <ImageView
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:layout_marginBottom="5dp"
+                    android:layout_marginEnd="5dp"
+                    android:id="@+id/iv_lRCF_seen"
+                    android:layout_alignParentBottom="true"
+                    android:src="@drawable/ic_circle_seen" />
+            </RelativeLayout>
+
+        </LinearLayout>
 
     <ProgressBar
         android:id="@+id/pb_lRCF_progress"
         style="?android:attr/progressBarStyleHorizontal"
         android:layout_width="match_parent"
         android:layout_height="3dp"
-        android:progress="20"
+        android:paddingStart="10dp"
+        android:paddingEnd="10dp"
+        android:progress="0"
         android:progressBackgroundTint="@color/colorAccent" />
 
     <TextView
@@ -71,4 +85,5 @@
         android:paddingRight="10dp"
         android:text="Time"
         android:textColor="@color/colorPrimary" />
+    </LinearLayout>
 </LinearLayout>
