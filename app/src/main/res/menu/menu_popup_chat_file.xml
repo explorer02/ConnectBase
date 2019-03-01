@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/menu_pCF_openas"
+        android:title="Open As"
+        android:icon="@drawable/ic_open_as">
+        <menu>
+            <item
+                android:id="@+id/menu_pcF_open_audio"
+                android:title="Audio" />
+            <item
+                android:id="@+id/menu_pcF_open_document"
+                android:title="Document" />
+            <item
+                android:id="@+id/menu_pcF_open_image"
+                android:title="Image" />
+            <item
+                android:id="@+id/menu_pcF_open_text"
+                android:title="Text" />
+            <item
+                android:id="@+id/menu_pcF_open_video"
+                android:title="Video" />
+
+        </menu>
+    </item>
+
+
+    <item
+        android:id="@+id/menu_pCF_copy"
+        android:title="Copy Description"
+        android:icon="@drawable/ic_copy" />
+
+    <item
+        android:id="@+id/menu_pCF_forward"
+        android:icon="@drawable/ic_arrow_forward"
+        android:title="Forward to..." />
+
+    <item
+        android:id="@+id/menu_pCF_info"
+        android:icon="@drawable/ic_info"
+        android:title="Info" />
+
+    <item
+        android:id="@+id/menu_pCF_share"
+        android:title="Share"
+        android:icon="@drawable/ic_share" />
+
+</menu>

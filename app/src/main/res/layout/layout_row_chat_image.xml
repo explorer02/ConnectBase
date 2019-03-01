@@ -1,103 +1,118 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/linLay_lRCI"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:id="@+id/linLay_lRCI"
     android:paddingStart="5dp"
-    android:paddingEnd="3dp">
+    android:paddingEnd="5dp">
 
     <TextView
         android:id="@+id/tv_lRCI_name"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Name"
         android:paddingStart="10dp"
         android:paddingEnd="10dp"
+        android:textSize="15sp"
+        android:text="Name"
         android:textColor="@color/colorAccent" />
 
     <LinearLayout
         android:layout_width="wrap_content"
-        android:orientation="vertical"
-        android:layout_height="wrap_content">
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
 
         <LinearLayout
             android:layout_width="wrap_content"
-            android:orientation="vertical"
+            android:layout_height="wrap_content"
             android:background="@drawable/layout_chat_background_message_orange"
-            android:padding="10dp"
-            android:layout_height="wrap_content">
-
+            android:orientation="vertical"
+            android:padding="5dp">
 
             <RelativeLayout
-                android:layout_width="180dp"
-                android:layout_height="180dp">
+                android:layout_width="250dp"
+                android:layout_height="250dp">
 
-        <ImageView
-            android:id="@+id/iv_lRCI_image"
-            android:layout_width="match_parent"
-            android:scaleType="centerCrop"
-            android:layout_height="match_parent"
-            android:src="@color/colorPrimary" />
+                <android.support.v7.widget.CardView
+                    android:layout_width="match_parent"
+                    app:cardCornerRadius="5dp"
+                    android:layout_height="match_parent">
 
-        <ImageView
-            android:id="@+id/iv_lRCI_more"
-            android:layout_width="24dp"
-            android:layout_height="24dp"
-            android:layout_alignParentEnd="true"
-            android:src="@drawable/ic_more" />
+                    <ImageView
+                        android:id="@+id/iv_lRCI_image"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:scaleType="centerCrop"
+                        android:src="@color/colorPrimary" />
 
-        <ImageView
-            android:id="@+id/iv_lRCI_download"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:layout_marginStart="70dp"
-            android:layout_marginTop="70dp"
-            android:src="@drawable/ic_download" />
 
-    </RelativeLayout>
+                    <ImageView
+                        android:id="@+id/iv_lRCI_more"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:layout_gravity="end"
+                        android:src="@drawable/ic_more" />
 
-    <ProgressBar
-        android:id="@+id/pb_lRCI_progress"
-        style="?android:attr/progressBarStyleHorizontal"
-        android:layout_width="match_parent"
-        android:layout_height="3dp"
-        android:progress="0"
-        android:progressBackgroundTint="@color/colorAccent" />
+                    <ImageView
+                        android:id="@+id/iv_lRCI_download"
+                        android:layout_width="68dp"
+                        android:layout_height="58dp"
+                        android:layout_marginStart="90dp"
+                        android:background="@drawable/layout_curcle_button_white"
+                        android:padding="5dp"
+                        android:layout_marginTop="90dp"
+                        android:tint="@color/colorBlack"
+                        android:src="@drawable/ic_download" />
+                </android.support.v7.widget.CardView>
+
+            </RelativeLayout>
+
+            <ProgressBar
+                android:id="@+id/pb_lRCI_progress"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="match_parent"
+                android:layout_height="3dp"
+                android:progress="0"
+                android:paddingStart="2dp"
+                android:paddingEnd="2dp"
+                android:progressBackgroundTint="@color/colorAccent" />
 
             <LinearLayout
                 android:layout_width="match_parent"
-                android:orientation="horizontal"
-                android:layout_height="wrap_content">
+                android:layout_gravity="end"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
 
                 <TextView
                     android:id="@+id/tv_lRCI_desc"
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
+                    android:layout_width="225dp"
+                    android:layout_height="wrap_content"
                     android:paddingStart="2dp"
                     android:paddingEnd="8dp"
-                    android:layout_height="wrap_content"
                     android:text="Description"
                     android:textColor="@color/colorWhite" />
 
                 <ImageView
-                    android:layout_width="18dp"
                     android:id="@+id/iv_lRCI_seen"
+                    android:layout_width="18dp"
+                    android:layout_height="24dp"
                     android:src="@drawable/ic_circle_seen"
-                    android:visibility="gone"
-                    android:layout_height="24dp" />
+                    android:visibility="gone" />
 
             </LinearLayout>
         </LinearLayout>
 
-    <TextView
-        android:id="@+id/tv_lRCI_time"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="right"
-        android:paddingRight="10dp"
-        android:text="Time"
-        android:textColor="@color/colorPrimary" />
+        <TextView
+            android:id="@+id/tv_lRCI_time"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="end"
+            android:paddingEnd="10dp"
+            android:textSize="12sp"
+            android:paddingStart="0dp"
+            android:text="Time"
+            android:textColor="@color/colorPrimary" />
 
     </LinearLayout>
 

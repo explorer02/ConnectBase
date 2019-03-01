@@ -2,6 +2,7 @@ package com.example.connectbase;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
+import android.app.Dialog;
 import android.app.ProgressDialog;
 import android.content.ClipData;
 import android.content.ClipboardManager;
@@ -11,6 +12,9 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
+import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -671,7 +675,6 @@ public class ChatActivity extends AppCompatActivity {
             messageMetaData.put("sent", sent);
             values.put("message_id", msgId);
 
-
             if (object instanceof ChatMessage) {
 
                 ChatMessage chatMessage = (ChatMessage) object;
@@ -723,6 +726,13 @@ public class ChatActivity extends AppCompatActivity {
                 chatMap.put(msgId, object);
                 adapter.notifyItemInserted(chatArray.size() - 1);
                 chatList.scrollToPosition(chatArray.size() - 1);
+
+                new Handler().post(() -> {
+                    if (sent == 1)
+                        playSound(true);
+                    else if (sent == -1)
+                        playSound(false);
+                });
             } else {
                 if (seen.equals("true")) {
                     chatDatabase.execSQL("update message_" + type + " set seen='true' where message_id='" + msgId + "'");
@@ -754,6 +764,7 @@ public class ChatActivity extends AppCompatActivity {
                     String imageUrl = chatImage.getImageUrl();
                     String thumbUrl = chatImage.getThumbImage();
 
+
                     chatDatabase.execSQL("update message_image set imageUrl='" + imageUrl + "',thumbImage='" + thumbUrl + "' where message_id='" + msgId + "'");
 
                     chatMap.put(msgId, object);
@@ -762,6 +773,13 @@ public class ChatActivity extends AppCompatActivity {
                         if (chatArray.get(i).getId().equals(msgId))
                             index = i;
                     adapter.notifyItemChanged(index);
+
+                    new Handler().post(() -> {
+                        if (sent == 1)
+                            playSound(true);
+                        else if (sent == -1)
+                            playSound(false);
+                    });
 
                 } else if (type.equals("file")) {
                     ChatFile chatFile = (ChatFile) object;
@@ -778,12 +796,31 @@ public class ChatActivity extends AppCompatActivity {
                         if (chatArray.get(i).getId().equals(msgId))
                             index = i;
                     adapter.notifyItemChanged(index);
+                    new Handler().post(() -> {
+                        if (sent == 1)
+                            playSound(true);
+                        else if (sent == -1)
+                            playSound(false);
+                    });
                 }
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
 
+    }
+
+    void playSound(boolean sender) {
+
+        MediaPlayer mediaPlayer;
+
+        if (sender) {
+            mediaPlayer = MediaPlayer.create(this, R.raw.tick_message);
+            mediaPlayer.start();
+        } else {
+            mediaPlayer = MediaPlayer.create(this, R.raw.piunn);
+            mediaPlayer.start();
+        }
     }
 
     private void updateSharedPreference(String msgId) {
@@ -845,29 +882,25 @@ public class ChatActivity extends AppCompatActivity {
     }
 
     private String getLastSeenMessage() {
-        String msgid = null;
-        for (int i = 0; i < chatArray.size(); i++) {
+        for (int i = chatArray.size() - 1; i >= 0; i--) {
             String key = chatArray.get(i).getId();
             String type = chatArray.get(i).getType();
             switch (type) {
                 case "text":
                     String seen = ((ChatMessage) chatMap.get(key)).getSeen();
                     if (seen.equals("true"))
-                        msgid = key;
-                    break;
+                    return key;
                 case "image":
                     seen = ((ChatImage) chatMap.get(key)).getSeen();
                     if (seen.equals("true"))
-                        msgid = key;
-                    break;
+                    return key;
                 case "file":
                     seen = ((ChatFile) chatMap.get(key)).getSeen();
                     if (seen.equals("true"))
-                        msgid = key;
-                    break;
+                    return key;
             }
         }
-        return msgid;
+        return null;
 
     }
 
@@ -891,6 +924,10 @@ public class ChatActivity extends AppCompatActivity {
             cursor = chatDatabase.rawQuery("Select * from user_" + id, null, null);
             int max = cursor.getCount();
             dialog.setMax(max);
+
+            String lastSeen = getLastSeenMessage();
+            if (lastSeen != null)
+                updateSharedPreference(lastSeen);
 
         }
 
@@ -1019,8 +1056,8 @@ public class ChatActivity extends AppCompatActivity {
                     viewHolderImage.tvName.setText(sender1);
                     viewHolderImage.ivPic.setClickable(false);
 
-                    viewHolderImage.tvDesc.setText(chatImage.getDescription());
-
+                    String description = chatImage.getDescription().trim();
+                    viewHolderImage.tvDesc.setText(description);
                     viewHolderImage.tvTime.setText(commonFunctions.convertTime(chatImage.getTime(), true));
 
                     if (sender1.equals("You")) {
@@ -1097,6 +1134,10 @@ public class ChatActivity extends AppCompatActivity {
                         viewHolderImage.ivSeen.setVisibility(View.GONE);
                         viewHolderImage.ivDownload.setVisibility(View.GONE);
 
+                        if (description.isEmpty())
+                            viewHolderImage.tvDesc.setVisibility(View.GONE);
+                        else viewHolderImage.tvDesc.setVisibility(View.VISIBLE);
+
 
                         if (chatImage.getSeen().equals("false"))
                             mChatReference.child(chatId).child(chatArray.get(i).id).child("seen").setValue("true");
@@ -1149,6 +1190,11 @@ public class ChatActivity extends AppCompatActivity {
                         else imageFile = new File(parent, "/received/" + chatImage.getImageName());
                         startActivity(new Intent(ChatActivity.this, ZoomImageViewActivity.class).putExtra("path", imageFile.getPath()));
                     });
+
+                    viewHolderImage.ivMore.setOnClickListener(v -> {
+                        showPopupMenu(v, 1, i);
+                    });
+
                     break;
 
                 case 2:
@@ -1159,10 +1205,10 @@ public class ChatActivity extends AppCompatActivity {
                     String sender2 = chatFile.getSender().equals(currentId) ? "You" : user.getName();
                     viewHolderFile.tvName.setText(sender2);
                     viewHolderFile.tvTime.setText(commonFunctions.convertTime(chatFile.getTime(), true));
-                    String name = chatFile.getFileName().substring(0, chatFile.getFileName().lastIndexOf(".") - 1);
+                    String name = chatFile.getFileName().substring(0, chatFile.getFileName().lastIndexOf("."));
                     String extension = chatFile.getFileName().substring(chatFile.getFileName().lastIndexOf(".") + 1);
-                    if (name.length() > 10)
-                        name = name.substring(0, 10) + "...";
+                    if (name.length() > 15)
+                        name = name.substring(0, 15) + "...";
 
                     String type = extension;
                     switch (extension) {
@@ -1279,10 +1325,14 @@ public class ChatActivity extends AppCompatActivity {
                         File file = new File(path);
                         if (file.exists()) {
                             Intent intent = new Intent(Intent.ACTION_VIEW);
-                            intent.setDataAndTypeAndNormalize(commonFunctions.getUriFromFile(getApplicationContext(), file), "*/*");
+                            intent.setDataAndType(commonFunctions.getUriFromFile(getApplicationContext(), file), "*/*");
                             intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_GRANT_READ_URI_PERMISSION);
                             startActivity(Intent.createChooser(intent, "Choose an Application to open with.."));
                         }
+                    });
+
+                    viewHolderFile.ivMore.setOnClickListener(v -> {
+                        showPopupMenu(v, 2, i);
                     });
 
 
@@ -1333,7 +1383,8 @@ public class ChatActivity extends AppCompatActivity {
         class ViewHolderImage extends RecyclerView.ViewHolder {
 
             TextView tvName, tvDesc, tvTime;
-            ImageView ivMore, ivPic, ivDownload, ivSeen;
+            ImageView ivMore, ivDownload, ivSeen, ivPic;
+
             LinearLayout layout;
             ProgressBar progressBar;
 
@@ -1661,9 +1712,10 @@ public class ChatActivity extends AppCompatActivity {
                 menuBuilder.setCallback(new MenuBuilder.Callback() {
                     @Override
                     public boolean onMenuItemSelected(MenuBuilder menuBuilder, MenuItem menuItem) {
+                        ChatMessage chatMessage = (ChatMessage) chatMap.get(chatArray.get(position).getId());
+                        String message = chatMessage.getMessage();
                         switch (menuItem.getItemId()) {
                             case R.id.menu_pCM_copy:
-                                String message = ((ChatMessage) chatMap.get(chatArray.get(position).getId())).getMessage();
                                 ClipData clipData = ClipData.newPlainText("message", message);
                                 clipboardManager.setPrimaryClip(clipData);
                                 Snackbar.make(chatList, "Copied", Snackbar.LENGTH_SHORT).show();
@@ -1672,6 +1724,13 @@ public class ChatActivity extends AppCompatActivity {
                             case R.id.menu_pCM_forward:
                                 return true;
                             case R.id.menu_pCM_info:
+                                showMessageInfoDialog(0, chatMessage);
+                                return true;
+                            case R.id.menu_pCM_share:
+                                Intent intent = new Intent(Intent.ACTION_SEND);
+                                intent.putExtra(Intent.EXTRA_TEXT, message);
+                                intent.setType("text/plain");
+                                startActivity(Intent.createChooser(intent, "Share via..."));
                                 return true;
                             //TODO Complete methods
 
@@ -1686,13 +1745,178 @@ public class ChatActivity extends AppCompatActivity {
                 });
 
                 break;
+
+            case 1:
+
+                getMenuInflater().inflate(R.menu.menu_popup_chat_image, menuBuilder);
+                menuPopupHelper = new MenuPopupHelper(this, menuBuilder, view);
+                menuPopupHelper.setForceShowIcon(true);
+                menuPopupHelper.show();
+
+                menuBuilder.setCallback(new MenuBuilder.Callback() {
+                    @Override
+                    public boolean onMenuItemSelected(MenuBuilder menuBuilder, MenuItem menuItem) {
+
+                        ChatImage chatImage = ((ChatImage) chatMap.get(chatArray.get(position).getId()));
+
+                        Uri imageUri;
+                        String path = Environment.getExternalStorageDirectory() + "/ConnectBase/Media/Images/";
+                        if (chatImage.getSender().equals(currentId))
+                            path += "sent/";
+                        else path += "received/";
+                        path += chatImage.getImageName();
+                        if (!new File(path).exists()) {
+                            Snackbar.make(chatList, "File doesn't exist in storage", Snackbar.LENGTH_SHORT).show();
+                            menuPopupHelper.dismiss();
+                            return true;
+                        }
+                        imageUri = commonFunctions.getUriFromFile(getApplicationContext(), new File(path));
+
+                        switch (menuItem.getItemId()) {
+                            case R.id.menu_pCI_gallery:
+                                Intent intent = new Intent(Intent.ACTION_VIEW);
+                                intent.setDataAndType(imageUri, "image/*");
+                                intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                                startActivity(intent);
+                                return true;
+                            case R.id.menu_pCI_copy:
+                                ClipData clipData = ClipData.newPlainText("desc", chatImage.getDescription());
+                                clipboardManager.setPrimaryClip(clipData);
+                                Snackbar.make(chatList, "Copied", Snackbar.LENGTH_SHORT).show();
+                                return true;
+                            case R.id.menu_pCI_forward:
+                                return true;
+                            case R.id.menu_pCI_info:
+                                return true;
+                            case R.id.menu_pCI_share:
+                                Intent shareIntent = new Intent(Intent.ACTION_SEND);
+                                shareIntent.putExtra(Intent.EXTRA_STREAM, imageUri);
+                                shareIntent.setType("image/jpeg");
+                                startActivity(Intent.createChooser(shareIntent, "Share via..."));
+                                return true;
+                        }
+                        return false;
+                    }
+
+                    @Override
+                    public void onMenuModeChange(MenuBuilder menuBuilder) {
+
+                    }
+                });
+                break;
+
+            case 2:
+
+                getMenuInflater().inflate(R.menu.menu_popup_chat_file, menuBuilder);
+                menuPopupHelper = new MenuPopupHelper(this, menuBuilder, view);
+                menuPopupHelper.setForceShowIcon(true);
+                menuPopupHelper.show();
+
+                menuBuilder.setCallback(new MenuBuilder.Callback() {
+                    @Override
+                    public boolean onMenuItemSelected(MenuBuilder menuBuilder, MenuItem menuItem) {
+
+                        ChatFile chatFile = ((ChatFile) chatMap.get(chatArray.get(position).getId()));
+
+                        String path = Environment.getExternalStorageDirectory() + "/ConnectBase/Media/Files/";
+                        if (chatFile.getSender().equals(currentId))
+                            path += "sent/";
+                        else path += "received/";
+                        path += chatFile.getFileName();
+                        if (!new File(path).exists()) {
+                            Snackbar.make(chatList, "File doesn't exist in storage", Snackbar.LENGTH_SHORT).show();
+                            return true;
+                        }
+                        Uri fileUri = commonFunctions.getUriFromFile(getApplicationContext(), new File(path));
+
+                        switch (menuItem.getItemId()) {
+
+                            case R.id.menu_pCF_copy:
+                                ClipData clipData = ClipData.newPlainText("desc", chatFile.getDescription());
+                                clipboardManager.setPrimaryClip(clipData);
+                                Snackbar.make(chatList, "Copied", Snackbar.LENGTH_SHORT).show();
+                                return true;
+                            case R.id.menu_pCF_forward:
+                                return true;
+                            case R.id.menu_pCF_info:
+                                return true;
+                            case R.id.menu_pCF_share:
+                                Intent shareIntent = new Intent(Intent.ACTION_SEND);
+                                shareIntent.putExtra(Intent.EXTRA_STREAM, fileUri);
+                                shareIntent.setType("*/*");
+                                startActivity(Intent.createChooser(shareIntent, "Share via..."));
+                                return true;
+                            default:
+                                int id = menuItem.getItemId();
+                                Intent intent = new Intent(Intent.ACTION_VIEW);
+                                intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_GRANT_READ_URI_PERMISSION);
+
+                                switch (id) {
+                                    case R.id.menu_pcF_open_audio:
+                                        intent.setDataAndType(fileUri, "audio/*");
+                                        startActivity(Intent.createChooser(intent, "Open with"));
+                                        break;
+                                    case R.id.menu_pcF_open_document:
+                                        intent.setDataAndType(fileUri, "application/*");
+                                        startActivity(Intent.createChooser(intent, "Open with"));
+                                        break;
+                                    case R.id.menu_pcF_open_image:
+                                        intent.setDataAndType(fileUri, "image/*");
+                                        startActivity(Intent.createChooser(intent, "Open with"));
+                                        break;
+                                    case R.id.menu_pcF_open_text:
+                                        intent.setDataAndType(fileUri, "text/*");
+                                        startActivity(Intent.createChooser(intent, "Open with"));
+                                        break;
+                                    case R.id.menu_pcF_open_video:
+                                        intent.setDataAndType(fileUri, "video/*");
+                                        startActivity(Intent.createChooser(intent, "Open with"));
+                                        break;
+                                }
+                                return true;
+
+                        }
+                    }
+
+                    @Override
+                    public void onMenuModeChange(MenuBuilder menuBuilder) {
+
+                    }
+                });
+                break;
+
         }
 
     }
 
-}
+    void showMessageInfoDialog(int type, Object object) {
 
-/*if(ContextCompat.checkSelfPermission(this,Manifest.permission.WRITE_EXTERNAL_STORAGE)!=PackageManager.PERMISSION_GRANTED){
-            ActivityCompat.requestPermissions(this,new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},121212);
-            return;
-        }*/
+        Dialog dialog = new Dialog(this);
+        View view;
+
+        switch (type) {
+            case 0:
+                ChatMessage chatMessage = (ChatMessage) object;
+                view = getLayoutInflater().inflate(R.layout.layout_dialog_message_info_text, null, false);
+                TextView tvSender, tvMessage, tvTime, tvStatus;
+
+                tvSender = view.findViewById(R.id.tv_lDMIT_sender);
+                tvMessage = view.findViewById(R.id.tv_lDMIT_message);
+                tvTime = view.findViewById(R.id.tv_lDMIT_time);
+                tvStatus = view.findViewById(R.id.tv_lDMIT_status);
+
+                tvSender.setText(chatMessage.getSender().equals(currentId) ? "You" : user.getName());
+                tvMessage.setText(chatMessage.getMessage());
+                tvStatus.setText(chatMessage.getSeen().equals("false") ? "Delivered" : "Seen");
+                tvTime.setText(commonFunctions.convertTime(chatMessage.getTime(), false));
+
+                dialog.setContentView(view);
+                dialog.setCanceledOnTouchOutside(true);
+                dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+                dialog.show();
+
+                break;
+        }
+    }
+
+}

@@ -217,6 +217,7 @@
             android:layout_marginStart="32dp"
             android:layout_marginTop="4dp"
             android:id="@+id/iv_updateProfile_resume"
+            android:tint="#00ff00"
             android:layout_toEndOf="@+id/tv_updateProfile_resume"
             android:src="@drawable/ic_file" />
 

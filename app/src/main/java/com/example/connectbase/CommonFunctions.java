@@ -136,7 +136,7 @@ class CommonFunctions {
         SimpleDateFormat dateFormat;
         if (small)
             dateFormat = new SimpleDateFormat("hh:mm a");
-        else dateFormat = new SimpleDateFormat("dd-MMM-yy HH:mm a");
+        else dateFormat = new SimpleDateFormat("dd-MMM-yy hh:mm a");
 
         return dateFormat.format(calendar.getTime());
     }

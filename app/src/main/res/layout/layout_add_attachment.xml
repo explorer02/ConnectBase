@@ -17,7 +17,8 @@
             android:id="@+id/iv_lAA_file"
             android:layout_width="70dp"
             android:layout_height="70dp"
-            android:src="@drawable/ic_file_red" />
+            android:tint="#f00"
+            android:src="@drawable/ic_file" />
 
         <TextView
             android:layout_width="70dp"
@@ -64,6 +65,7 @@
         <ImageView
             android:id="@+id/iv_lAA_gallery"
             android:layout_width="70dp"
+            android:tint="#1AFF3F"
             android:layout_height="70dp"
             android:src="@drawable/ic_gallery" />
 

@@ -1,24 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/menu_pCI_gallery"
+        android:title="View in Gallery"
+        android:icon="@drawable/ic_gallery" />
 
     <item
-        android:id="@+id/menu_pCM_copy"
-        android:title="Copy"
+        android:id="@+id/menu_pCI_copy"
+        android:title="Copy Description"
         android:icon="@drawable/ic_copy" />
 
     <item
-        android:id="@+id/menu_pCM_forward"
+        android:id="@+id/menu_pCI_forward"
         android:icon="@drawable/ic_arrow_forward"
         android:title="Forward to..." />
 
     <item
-        android:id="@+id/menu_pCM_info"
+        android:id="@+id/menu_pCI_info"
         android:icon="@drawable/ic_info"
         android:title="Info" />
+
     <item
-        android:id="@+id/menu_pCM_share"
+        android:id="@+id/menu_pCI_share"
         android:title="Share"
         android:icon="@drawable/ic_share" />
-
 
 </menu>

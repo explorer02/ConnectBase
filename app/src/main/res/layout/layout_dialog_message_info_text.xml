@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:background="@drawable/layout_circular_buttons"
+    android:backgroundTint="@color/colorWhite"
+    android:padding="10dp"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textColor="@color/colorBlack"
+        android:textSize="24sp"
+        android:text="Message info" />
+
+    <TableLayout
+        android:layout_width="match_parent"
+        android:layout_marginTop="50dp"
+        android:layout_height="wrap_content">
+
+        <TableRow
+            android:layout_marginTop="5dp"
+            android:layout_marginBottom="5dp"
+            android:background="#20f0">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:text="Type"
+                android:textColor="@color/colorBlack"
+                android:textSize="16dp"
+                android:minWidth="100dp"
+                android:layout_column="1" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:text="Text"
+                android:textColor="@color/colorBlack"
+                android:textSize="16dp"
+                android:layout_column="2" />
+
+        </TableRow>
+
+        <View
+            android:background="#ddd"
+            android:layout_marginTop="5dp"
+            android:layout_height="2dp" />
+
+        <TableRow
+            android:layout_marginTop="5dp"
+            android:layout_marginBottom="5dp"
+            android:background="#200f">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:text="Sender"
+                android:textColor="@color/colorBlack"
+                android:textSize="16dp"
+                android:minWidth="100dp"
+                android:layout_column="1" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:text="You"
+                android:id="@+id/tv_lDMIT_sender"
+                android:textColor="@color/colorBlack"
+                android:textSize="16dp"
+                android:layout_column="2" />
+
+        </TableRow>
+
+        <View
+            android:background="#ddd"
+            android:layout_marginTop="5dp"
+            android:layout_height="2dp" />
+
+        <TableRow
+            android:layout_marginTop="5dp"
+            android:layout_marginBottom="5dp"
+            android:background="#2f00">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:text="Message"
+                android:textColor="@color/colorBlack"
+                android:textSize="16dp"
+                android:minWidth="100dp"
+                android:layout_column="1" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:text="Hello..."
+                android:maxWidth="200dp"
+                android:textColor="@color/colorBlack"
+                android:textSize="16dp"
+                android:id="@+id/tv_lDMIT_message"
+                android:layout_column="2" />
+
+        </TableRow>
+
+        <View
+            android:background="#ddd"
+            android:layout_marginTop="5dp"
+            android:layout_height="2dp" />
+
+        <TableRow
+            android:layout_marginTop="5dp"
+            android:layout_marginBottom="5dp"
+            android:background="#45D3AB19">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:text="Time"
+                android:textColor="@color/colorBlack"
+                android:textSize="16dp"
+                android:minWidth="100dp"
+                android:layout_column="1" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:text="12:00"
+                android:textColor="@color/colorBlack"
+                android:textSize="16dp"
+                android:id="@+id/tv_lDMIT_time"
+                android:layout_column="2" />
+
+        </TableRow>
+
+        <View
+            android:background="#ddd"
+            android:layout_marginTop="5dp"
+            android:layout_height="2dp" />
+
+        <TableRow
+            android:layout_marginTop="5dp"
+            android:background="#ddd"
+            android:layout_marginBottom="5dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:text="Status"
+                android:textColor="@color/colorBlack"
+                android:textSize="16dp"
+                android:minWidth="100dp"
+                android:layout_column="1" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:text="Seen"
+                android:textColor="@color/colorBlack"
+                android:textSize="16dp"
+                android:id="@+id/tv_lDMIT_status"
+                android:layout_column="2" />
+
+        </TableRow>
+
+        <View
+            android:background="#ddd"
+            android:layout_marginTop="5dp"
+            android:layout_height="2dp" />
+
+    </TableLayout>
+
+</RelativeLayout>
