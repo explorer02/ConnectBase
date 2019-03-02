@@ -11,5 +11,9 @@
         android:id="@+id/menu_chat_clearSharedpref"
         android:title="Clear SharedPrefs" />
 
+    <item
+        android:id="@+id/menu_chat_save"
+        android:title="Save Chat" />
+
 
 </menu>

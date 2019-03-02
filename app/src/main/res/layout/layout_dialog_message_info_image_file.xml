@@ -1,5 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
-
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:background="@drawable/layout_circular_buttons"
     android:backgroundTint="@color/colorWhite"
@@ -17,7 +16,7 @@
     <TableLayout
         android:layout_width="match_parent"
         android:layout_marginTop="50dp"
-        android:id="@+id/table_lDMIT"
+        android:id="@+id/table_lDMIIF"
         android:layout_height="wrap_content">
 
         <TableRow
@@ -35,7 +34,8 @@
 
             <TextView
                 android:layout_width="wrap_content"
-                android:text="Text"
+                android:text="Image"
+                android:id="@+id/tv_lDMIIF_type"
                 android:textColor="@color/colorBlack"
                 android:textSize="16dp"
                 android:layout_column="2" />
@@ -63,7 +63,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:text="You"
-                android:id="@+id/tv_lDMIT_sender"
+                android:id="@+id/tv_lDMIIF_sender"
                 android:textColor="@color/colorBlack"
                 android:textSize="16dp"
                 android:layout_column="2" />
@@ -82,7 +82,7 @@
 
             <TextView
                 android:layout_width="wrap_content"
-                android:text="Message"
+                android:text="Name"
                 android:textColor="@color/colorBlack"
                 android:textSize="16dp"
                 android:minWidth="100dp"
@@ -90,11 +90,11 @@
 
             <TextView
                 android:layout_width="wrap_content"
-                android:text="Hello..."
+                android:text="File name"
                 android:maxWidth="200dp"
                 android:textColor="@color/colorBlack"
                 android:textSize="16dp"
-                android:id="@+id/tv_lDMIT_message"
+                android:id="@+id/tv_lDMIIF_file_name"
                 android:layout_column="2" />
 
         </TableRow>
@@ -103,6 +103,65 @@
             android:background="#ddd"
             android:layout_marginTop="5dp"
             android:layout_height="2dp" />
+
+        <TableRow
+            android:layout_marginTop="5dp"
+            android:layout_marginBottom="5dp"
+            android:background="#4FFF00A1">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:text="Location"
+                android:textColor="@color/colorBlack"
+                android:textSize="16dp"
+                android:minWidth="100dp"
+                android:layout_column="1" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:text="Location"
+                android:maxWidth="200dp"
+                android:textColor="@color/colorBlack"
+                android:textSize="16dp"
+                android:id="@+id/tv_lDMIIF_file_location"
+                android:layout_column="2" />
+
+        </TableRow>
+
+        <View
+            android:background="#ddd"
+            android:layout_marginTop="5dp"
+            android:layout_height="2dp" />
+
+        <TableRow
+            android:layout_marginTop="5dp"
+            android:layout_marginBottom="5dp"
+            android:background="#200f">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:text="Description"
+                android:textColor="@color/colorBlack"
+                android:textSize="16dp"
+                android:minWidth="100dp"
+                android:layout_column="1" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:text="description"
+                android:maxWidth="200dp"
+                android:id="@+id/tv_lDMIIF_desc"
+                android:textColor="@color/colorBlack"
+                android:textSize="16dp"
+                android:layout_column="2" />
+
+        </TableRow>
+
+        <View
+            android:background="#ddd"
+            android:layout_marginTop="5dp"
+            android:layout_height="2dp" />
+
 
         <TableRow
             android:layout_marginTop="5dp"
@@ -122,7 +181,7 @@
                 android:text="12:00"
                 android:textColor="@color/colorBlack"
                 android:textSize="16dp"
-                android:id="@+id/tv_lDMIT_time"
+                android:id="@+id/tv_lDMIIF_time"
                 android:layout_column="2" />
 
         </TableRow>
@@ -150,7 +209,7 @@
                 android:text="Seen"
                 android:textColor="@color/colorBlack"
                 android:textSize="16dp"
-                android:id="@+id/tv_lDMIT_status"
+                android:id="@+id/tv_lDMIIF_status"
                 android:layout_column="2" />
 
         </TableRow>
@@ -164,7 +223,7 @@
 
     <Button
         android:layout_width="100dp"
-        android:layout_below="@id/table_lDMIT"
+        android:layout_below="@id/table_lDMIIF"
         android:layout_marginTop="30dp"
         android:layout_alignParentEnd="true"
         android:layout_alignParentStart="true"
@@ -173,7 +232,7 @@
         android:background="@drawable/layout_circular_buttons"
         android:text="Ok"
         android:textSize="20sp"
-        android:id="@+id/btn_lDMIT_ok"
+        android:id="@+id/btn_lDMIIF_ok"
         android:textColor="@color/colorWhite"
         android:layout_height="wrap_content" />
 

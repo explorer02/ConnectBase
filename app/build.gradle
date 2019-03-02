@@ -53,4 +53,5 @@ dependencies {
     implementation 'com.theartofdev.edmodo:android-image-cropper:2.7.0'
     implementation 'id.zelory:compressor:2.1.0'
     implementation 'ja.burhanrashid52:photoeditor:0.3.3'
+    implementation 'com.itextpdf:itextg:5.5.10'
 }

@@ -42,6 +42,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.inputmethod.InputMethodManager;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -61,6 +62,9 @@ import com.google.firebase.storage.FileDownloadTask;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
+import com.itextpdf.text.Document;
+import com.itextpdf.text.Paragraph;
+import com.itextpdf.text.pdf.PdfWriter;
 import com.squareup.picasso.Picasso;
 
 import java.io.File;
@@ -561,6 +565,32 @@ public class ChatActivity extends AppCompatActivity {
         return super.onCreateOptionsMenu(menu);
     }
 
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+
+        switch (item.getItemId()) {
+            case R.id.menu_chat_clear:
+                new ClearChats().execute();
+                break;
+            case R.id.menu_chat_generatetext:
+                for (int i = 1; i <= 50; i++)
+                    sendMessage("Message (" + i + ")");
+                break;
+            case R.id.menu_chat_clearSharedpref:
+                sharedPreferences.edit().clear().apply();
+                break;
+            case R.id.menu_chat_save:
+                try {
+                    saveChats();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                break;
+
+        }
+        return true;
+    }
+
     void generateChatId() {
 
         sharedPreferences = getSharedPreferences("chatData", MODE_PRIVATE);
@@ -621,7 +651,6 @@ public class ChatActivity extends AppCompatActivity {
 
     }
 
-
     private void openUserProfile() {
 
         Intent intent = new Intent(this, ViewUserProfile.class);
@@ -643,24 +672,6 @@ public class ChatActivity extends AppCompatActivity {
                 }
                 break;
         }
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-
-        switch (item.getItemId()) {
-            case R.id.menu_chat_clear:
-                new ClearChats().execute();
-                break;
-            case R.id.menu_chat_generatetext:
-                for (int i = 1; i <= 50; i++)
-                    sendMessage("Message (" + i + ")");
-                break;
-            case R.id.menu_chat_clearSharedpref:
-                sharedPreferences.edit().clear().apply();
-                break;
-        }
-        return true;
     }
 
     void addMessageToDatabase(String msgId, Object object, int sent) {
@@ -727,12 +738,14 @@ public class ChatActivity extends AppCompatActivity {
                 adapter.notifyItemInserted(chatArray.size() - 1);
                 chatList.scrollToPosition(chatArray.size() - 1);
 
-                new Handler().post(() -> {
-                    if (sent == 1)
-                        playSound(true);
-                    else if (sent == -1)
-                        playSound(false);
-                });
+                if (type.equals("text")) {
+                    new Handler().post(() -> {
+                        if (sent == 1)
+                            playSound(true);
+                        else if (sent == -1)
+                            playSound(false);
+                    });
+                }
             } else {
                 if (seen.equals("true")) {
                     chatDatabase.execSQL("update message_" + type + " set seen='true' where message_id='" + msgId + "'");
@@ -764,6 +777,12 @@ public class ChatActivity extends AppCompatActivity {
                     String imageUrl = chatImage.getImageUrl();
                     String thumbUrl = chatImage.getThumbImage();
 
+                    Cursor urlCursor = chatDatabase.rawQuery("select imageUrl from message_image where message_id='" + msgId + "'", null, null);
+                    urlCursor.moveToFirst();
+                    String imageUrl1 = urlCursor.getString(0);
+                    urlCursor.close();
+                    if (imageUrl1.equals(imageUrl))
+                        return;
 
                     chatDatabase.execSQL("update message_image set imageUrl='" + imageUrl + "',thumbImage='" + thumbUrl + "' where message_id='" + msgId + "'");
 
@@ -787,6 +806,13 @@ public class ChatActivity extends AppCompatActivity {
                     if (chatFile.getFileUrl().isEmpty())
                         return;
                     String fileUrl = chatFile.getFileUrl();
+
+                    Cursor urlCursor = chatDatabase.rawQuery("select fileUrl from message_file where message_id='" + msgId + "'", null, null);
+                    urlCursor.moveToFirst();
+                    String fileUrl1 = urlCursor.getString(0);
+                    urlCursor.close();
+                    if (fileUrl1.equals(fileUrl))
+                        return;
 
                     chatDatabase.execSQL("update message_file set fileUrl='" + fileUrl + "'where message_id='" + msgId + "'");
 
@@ -889,15 +915,18 @@ public class ChatActivity extends AppCompatActivity {
                 case "text":
                     String seen = ((ChatMessage) chatMap.get(key)).getSeen();
                     if (seen.equals("true"))
-                    return key;
+                        return key;
+                    break;
                 case "image":
                     seen = ((ChatImage) chatMap.get(key)).getSeen();
                     if (seen.equals("true"))
-                    return key;
+                        return key;
+                    break;
                 case "file":
                     seen = ((ChatFile) chatMap.get(key)).getSeen();
                     if (seen.equals("true"))
-                    return key;
+                        return key;
+                    break;
             }
         }
         return null;
@@ -911,6 +940,7 @@ public class ChatActivity extends AppCompatActivity {
         ProgressDialog dialog = new ProgressDialog(ChatActivity.this);
 
         Cursor cursor;
+
         @Override
         protected void onPreExecute() {
             super.onPreExecute();
@@ -1724,7 +1754,7 @@ public class ChatActivity extends AppCompatActivity {
                             case R.id.menu_pCM_forward:
                                 return true;
                             case R.id.menu_pCM_info:
-                                showMessageInfoDialog(0, chatMessage);
+                                showMessageInfoDialog(0, chatMessage, null);
                                 return true;
                             case R.id.menu_pCM_share:
                                 Intent intent = new Intent(Intent.ACTION_SEND);
@@ -1732,7 +1762,6 @@ public class ChatActivity extends AppCompatActivity {
                                 intent.setType("text/plain");
                                 startActivity(Intent.createChooser(intent, "Share via..."));
                                 return true;
-                            //TODO Complete methods
 
                         }
                         return false;
@@ -1758,8 +1787,6 @@ public class ChatActivity extends AppCompatActivity {
                     public boolean onMenuItemSelected(MenuBuilder menuBuilder, MenuItem menuItem) {
 
                         ChatImage chatImage = ((ChatImage) chatMap.get(chatArray.get(position).getId()));
-
-                        Uri imageUri;
                         String path = Environment.getExternalStorageDirectory() + "/ConnectBase/Media/Images/";
                         if (chatImage.getSender().equals(currentId))
                             path += "sent/";
@@ -1770,7 +1797,7 @@ public class ChatActivity extends AppCompatActivity {
                             menuPopupHelper.dismiss();
                             return true;
                         }
-                        imageUri = commonFunctions.getUriFromFile(getApplicationContext(), new File(path));
+                        Uri imageUri = commonFunctions.getUriFromFile(getApplicationContext(), new File(path));
 
                         switch (menuItem.getItemId()) {
                             case R.id.menu_pCI_gallery:
@@ -1787,6 +1814,7 @@ public class ChatActivity extends AppCompatActivity {
                             case R.id.menu_pCI_forward:
                                 return true;
                             case R.id.menu_pCI_info:
+                                showMessageInfoDialog(1, chatImage, path);
                                 return true;
                             case R.id.menu_pCI_share:
                                 Intent shareIntent = new Intent(Intent.ACTION_SEND);
@@ -1839,6 +1867,7 @@ public class ChatActivity extends AppCompatActivity {
                             case R.id.menu_pCF_forward:
                                 return true;
                             case R.id.menu_pCF_info:
+                                showMessageInfoDialog(2, chatFile, path);
                                 return true;
                             case R.id.menu_pCF_share:
                                 Intent shareIntent = new Intent(Intent.ACTION_SEND);
@@ -1874,7 +1903,6 @@ public class ChatActivity extends AppCompatActivity {
                                         break;
                                 }
                                 return true;
-
                         }
                     }
 
@@ -1884,39 +1912,93 @@ public class ChatActivity extends AppCompatActivity {
                     }
                 });
                 break;
-
         }
 
     }
 
-    void showMessageInfoDialog(int type, Object object) {
+    void showMessageInfoDialog(int type, Object object, String path) {
 
         Dialog dialog = new Dialog(this);
         View view;
+        TextView tvSender, tvTime, tvStatus;
+        Button btnOk;
 
-        switch (type) {
-            case 0:
-                ChatMessage chatMessage = (ChatMessage) object;
-                view = getLayoutInflater().inflate(R.layout.layout_dialog_message_info_text, null, false);
-                TextView tvSender, tvMessage, tvTime, tvStatus;
+        if (type == 0) {
+            ChatMessage chatMessage = (ChatMessage) object;
+            view = getLayoutInflater().inflate(R.layout.layout_dialog_message_info_text, null, false);
+            TextView tvMessage;
 
-                tvSender = view.findViewById(R.id.tv_lDMIT_sender);
-                tvMessage = view.findViewById(R.id.tv_lDMIT_message);
-                tvTime = view.findViewById(R.id.tv_lDMIT_time);
-                tvStatus = view.findViewById(R.id.tv_lDMIT_status);
+            tvSender = view.findViewById(R.id.tv_lDMIT_sender);
+            tvMessage = view.findViewById(R.id.tv_lDMIT_message);
+            tvTime = view.findViewById(R.id.tv_lDMIT_time);
+            tvStatus = view.findViewById(R.id.tv_lDMIT_status);
+            btnOk = view.findViewById(R.id.btn_lDMIT_ok);
 
-                tvSender.setText(chatMessage.getSender().equals(currentId) ? "You" : user.getName());
-                tvMessage.setText(chatMessage.getMessage());
-                tvStatus.setText(chatMessage.getSeen().equals("false") ? "Delivered" : "Seen");
-                tvTime.setText(commonFunctions.convertTime(chatMessage.getTime(), false));
+            tvSender.setText(chatMessage.getSender().equals(currentId) ? "You" : user.getName());
+            tvMessage.setText(chatMessage.getMessage());
+            tvStatus.setText(chatMessage.getSeen().equals("false") ? "Delivered" : "Seen");
+            tvTime.setText(commonFunctions.convertTime(chatMessage.getTime(), false));
+            btnOk.setOnClickListener(v -> dialog.dismiss());
 
-                dialog.setContentView(view);
-                dialog.setCanceledOnTouchOutside(true);
-                dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
-                dialog.show();
+            dialog.setContentView(view);
+            dialog.setCanceledOnTouchOutside(true);
+            dialog.setCancelable(false);
+            dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+            dialog.show();
 
-                break;
+        } else {
+            TextView tvFileName, tvFileLoc, tvDesc, tvType;
+            view = getLayoutInflater().inflate(R.layout.layout_dialog_message_info_image_file, null, false);
+
+            tvDesc = view.findViewById(R.id.tv_lDMIIF_desc);
+            tvFileLoc = view.findViewById(R.id.tv_lDMIIF_file_location);
+            tvFileName = view.findViewById(R.id.tv_lDMIIF_file_name);
+            tvSender = view.findViewById(R.id.tv_lDMIIF_sender);
+            tvStatus = view.findViewById(R.id.tv_lDMIIF_status);
+            tvTime = view.findViewById(R.id.tv_lDMIIF_time);
+            btnOk = view.findViewById(R.id.btn_lDMIIF_ok);
+            tvType = view.findViewById(R.id.tv_lDMIIF_type);
+
+            if (type == 1) {
+
+                ChatImage chatImage = (ChatImage) object;
+                tvSender.setText(chatImage.getSender().equals(currentId) ? "You" : user.getName());
+                tvDesc.setText(chatImage.getDescription());
+                tvStatus.setText(chatImage.getSeen().equals("false") ? "Delivered" : "Seen");
+                tvTime.setText(commonFunctions.convertTime(chatImage.getTime(), false));
+                tvFileName.setText(chatImage.getImageName());
+                tvFileLoc.setText(path);
+            } else {
+                tvType.setText("File");
+                ChatFile chatFile = (ChatFile) object;
+                tvSender.setText(chatFile.getSender().equals(currentId) ? "You" : user.getName());
+                tvDesc.setText(chatFile.getDescription());
+                tvStatus.setText(chatFile.getSeen().equals("false") ? "Delivered" : "Seen");
+                tvTime.setText(commonFunctions.convertTime(chatFile.getTime(), false));
+                tvFileName.setText(chatFile.getFileName());
+                tvFileLoc.setText(path);
+            }
+
+            btnOk.setOnClickListener(v -> dialog.dismiss());
+            dialog.setContentView(view);
+            dialog.setCanceledOnTouchOutside(true);
+            dialog.setCancelable(false);
+            dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+            dialog.show();
         }
+    }
+
+    void saveChats() throws Exception {
+
+        Document document = new Document();
+        String path = Environment.getExternalStorageDirectory() + "/ConnectBase/Saved Chats/";
+        new File(path).mkdirs();
+        PdfWriter.getInstance(document, new FileOutputStream(path + user.getName() + "\t" + commonFunctions.convertTime(new Date().getTime(), false) + ".pdf"));
+        document.open();
+        Paragraph paragraph = new Paragraph("Hello, Sample Pdf!!");
+        document.add(paragraph);
+        document.close();
+
     }
 
 }

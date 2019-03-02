@@ -16,9 +16,11 @@ public class Todo {
     //TODO home screen widget
     //TODO save chat in text file
     //TODO: Disable chat after Unfriend
+    //TODO fix sound of sending and receiving messages while loading chats
 
     /*
     Changes
+
 
      */
 
