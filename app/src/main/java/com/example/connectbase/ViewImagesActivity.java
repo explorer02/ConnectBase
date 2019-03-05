@@ -1,5 +1,6 @@
 package com.example.connectbase;
 
+import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.os.AsyncTask;
@@ -108,6 +109,7 @@ public class ViewImagesActivity extends AppCompatActivity {
         builder.show();
     }
 
+    @SuppressLint("StaticFieldLeak")
     public class LoadImages extends AsyncTask<Void, Void, Void> {
 
         @Override
@@ -115,9 +117,11 @@ public class ViewImagesActivity extends AppCompatActivity {
 
             for (int i = 0; i < pathList.size(); i++) {
                 Log.i("ConnectBase Path", pathList.get(i));
-                compressedPathList.add(compressImage(new File(pathList.get(i))).getPath());
+                File file = compressImage(new File(pathList.get(i)));
+                compressedPathList.add(file.getPath());
                 new File(pathList.get(i)).delete();
                 publishProgress();
+
             }
 
             return null;
@@ -135,7 +139,7 @@ public class ViewImagesActivity extends AppCompatActivity {
     public class Adapter extends RecyclerView.Adapter<Adapter.ViewHolder> {
 
 
-        public Adapter() {
+        Adapter() {
         }
 
         @NonNull

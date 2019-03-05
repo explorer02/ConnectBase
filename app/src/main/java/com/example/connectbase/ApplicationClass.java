@@ -6,18 +6,26 @@ import android.app.NotificationManager;
 import android.os.Build;
 
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.storage.FileDownloadTask;
+import com.google.firebase.storage.UploadTask;
+
+import java.util.HashMap;
 
 
 public class ApplicationClass extends Application {
 
     public static final String NOTIFICATION_CHANNEL__UPLOAD = "channel_upload";
     public static final String NOTIFICATION_CHANNEL__DOWNLOAD = "channel_download";
+    static HashMap<String, UploadTask> uploadTaskHashMap;
+    static HashMap<String, FileDownloadTask> downloadTaskHashMap;
 
     @Override
     public void onCreate() {
         super.onCreate();
         createNotificationChannels();
         FirebaseDatabase.getInstance().setPersistenceEnabled(true);
+        uploadTaskHashMap = new HashMap<>();
+        downloadTaskHashMap = new HashMap<>();
     }
 
     private void createNotificationChannels() {
