@@ -62,7 +62,10 @@ import com.google.firebase.storage.FileDownloadTask;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
+import com.itextpdf.text.BaseColor;
 import com.itextpdf.text.Document;
+import com.itextpdf.text.Font;
+import com.itextpdf.text.Image;
 import com.itextpdf.text.Paragraph;
 import com.itextpdf.text.pdf.PdfWriter;
 import com.squareup.picasso.Picasso;
@@ -73,7 +76,9 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 
@@ -580,11 +585,7 @@ public class ChatActivity extends AppCompatActivity {
                 sharedPreferences.edit().clear().apply();
                 break;
             case R.id.menu_chat_save:
-                try {
-                    saveChats();
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
+                new SaveChats().execute();
                 break;
 
         }
@@ -1988,17 +1989,142 @@ public class ChatActivity extends AppCompatActivity {
         }
     }
 
-    void saveChats() throws Exception {
+    @SuppressLint("StaticFieldLeak")
+    public class SaveChats extends AsyncTask<Void, Integer, Void> {
 
-        Document document = new Document();
-        String path = Environment.getExternalStorageDirectory() + "/ConnectBase/Saved Chats/";
-        new File(path).mkdirs();
-        PdfWriter.getInstance(document, new FileOutputStream(path + user.getName() + "\t" + commonFunctions.convertTime(new Date().getTime(), false) + ".pdf"));
-        document.open();
-        Paragraph paragraph = new Paragraph("Hello, Sample Pdf!!");
-        document.add(paragraph);
-        document.close();
+        ProgressDialog dialog;
+
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+            dialog = new ProgressDialog(ChatActivity.this);
+            dialog.setCancelable(false);
+            dialog.setProgress(0);
+            dialog.setMax(chatArray.size());
+            dialog.setTitle("Loading!!");
+            dialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
+            dialog.setMessage("Please wait while Saving Chats...");
+            dialog.show();
+        }
+
+        @Override
+        protected Void doInBackground(Void... voids) {
+            try {
+                Document document = new Document();
+                String path = Environment.getExternalStorageDirectory() + "/ConnectBase/Saved Chats/";
+                new File(path).mkdirs();
+                PdfWriter.getInstance(document, new FileOutputStream(path + user.getName() + "\t" + commonFunctions.convertTime(new Date().getTime(), false) + ".pdf"));
+                document.open();
+
+                Font redHeading = new Font(Font.FontFamily.COURIER, 18, Font.NORMAL, BaseColor.RED);
+                Font heading = new Font(Font.FontFamily.COURIER, 20.0f, Font.UNDERLINE);
+
+                Paragraph headingPara = new Paragraph("Chats with " + user.getName(), heading);
+                document.add(headingPara);
+                String date = "";
+
+                for (int i = 0; i < chatArray.size(); i++) {
+                    switch (chatArray.get(i).getType()) {
+                        case "text":
+                            ChatMessage chatMessage = ((ChatMessage) chatMap.get(chatArray.get(i).getId()));
+                            String newDate = calcDate(chatMessage.getTime());
+                            if (!date.equals(newDate)) {
+                                date = newDate;
+                                document.add(new Paragraph("\n" + date + "\n", redHeading));
+                            }
+                            String name = (chatMessage.getSender().equals(currentId) ? "You" : user.getName().trim()) + " -";
+                            String s = commonFunctions.convertTime(chatMessage.getTime(), true) + " :" + lPadding(name) + lPadding(chatMessage.getMessage());
+                            Paragraph paragraph = new Paragraph(s);
+                            document.add(paragraph);
+                            publishProgress(i);
+                            break;
+
+                        case "image":
+                            ChatImage chatImage = (ChatImage) chatMap.get(chatArray.get(i).getId());
+                            newDate = calcDate(chatImage.getTime());
+                            if (!date.equals(newDate)) {
+                                date = newDate;
+                                document.add(new Paragraph("\n" + date + "\n", redHeading));
+                            }
+
+                            name = (chatImage.getSender().equals(currentId) ? "You" : user.getName().trim()) + " -";
+                            s = commonFunctions.convertTime(chatImage.getTime(), true) + " :" + lPadding(name) + lPadding("(sends Image)");
+                            paragraph = new Paragraph("\n" + s + "\n");
+                            document.add(paragraph);
+
+                            String imagePath = Environment.getExternalStorageDirectory() + "/ConnectBase/Media/Images/";
+                            if (chatImage.getSender().equals(currentId)) {
+                                imagePath += "sent/";
+                            } else imagePath += "received/";
+                            imagePath += chatImage.imageName;
+
+                            if (!new File(imagePath).exists()) {
+                                document.add(new Paragraph("(File doesn't exists in storage)"));
+                                break;
+                            }
+
+                            Image image = Image.getInstance(imagePath);
+
+                            image.setAlignment(Image.ALIGN_CENTER | Image.TEXTWRAP);
+                            image.setBorder(Image.BOX);
+                            image.scaleToFit(200, 200);
+                            image.setBorderWidth(5);
+                            document.add(image);
+                            publishProgress(i);
+                            break;
+
+                        case "file":
+                            ChatFile chatFile = (ChatFile) chatMap.get(chatArray.get(i).getId());
+                            newDate = calcDate(chatFile.getTime());
+                            if (!date.equals(newDate)) {
+                                date = newDate;
+                                document.add(new Paragraph("\n" + date + "\n", redHeading));
+                            }
+                            name = (chatFile.getSender().equals(currentId) ? "You" : user.getName().trim()) + " -";
+                            s = commonFunctions.convertTime(chatFile.getTime(), true) + " :" + lPadding(name) + lPadding("(sends File '" + chatFile.getFileName() + "')");
+                            paragraph = new Paragraph("\n" + s + "\n");
+                            document.add(paragraph);
+                            publishProgress(i);
+                            break;
+                    }
+                }
+
+                document.close();
+            } catch (Exception e) {
+                Snackbar.make(chatList, e.getMessage(), Snackbar.LENGTH_SHORT).show();
+                Log.i("ConnectBaseEx", e.getMessage());
+            }
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(Void aVoid) {
+            super.onPostExecute(aVoid);
+            dialog.dismiss();
+            Snackbar.make(chatList, "Chats Successfully Saved!!", Snackbar.LENGTH_SHORT).show();
+        }
+
+        @Override
+        protected void onProgressUpdate(Integer... values) {
+            super.onProgressUpdate(values);
+            dialog.setProgress(values[0]);
+        }
 
     }
+
+    String lPadding(String s) {
+        String s1 = "^!^!^!^!^!^!^!^!^!^!" + s;
+        return s1.replace("^!", " ");
+    }
+
+    String calcDate(long time) {
+        String date;
+        SimpleDateFormat dateFormat = new SimpleDateFormat("dd-MMM-yy");
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTimeInMillis(time);
+        date = dateFormat.format(calendar.getTime());
+        return date;
+    }
+
 
 }

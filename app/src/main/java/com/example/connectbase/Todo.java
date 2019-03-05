@@ -10,7 +10,6 @@ public class Todo {
     //TODO last seen feature
     //TODO service for notifications
     //TODO reposition up down button in chat activity
-    //TODO white background download button
     //TODO chatlist element selection
     //TODO context action mode
     //TODO home screen widget
@@ -20,6 +19,7 @@ public class Todo {
 
     /*
     Changes
+
 
 
      */
