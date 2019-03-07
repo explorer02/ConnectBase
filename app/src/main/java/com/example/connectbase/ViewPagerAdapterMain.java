@@ -7,9 +7,9 @@ import android.support.v4.app.FragmentPagerAdapter;
 
 public class ViewPagerAdapterMain extends FragmentPagerAdapter {
 
-    final int noOfTabs=4;
+    private final int noOfTabs = 4;
 
-    public ViewPagerAdapterMain(FragmentManager fm) {
+    ViewPagerAdapterMain(FragmentManager fm) {
         super(fm);
     }
 
@@ -38,7 +38,7 @@ public class ViewPagerAdapterMain extends FragmentPagerAdapter {
             case 1:
                 return new FragChat();
             case 2:
-                return new FragFriends();
+                return new FragFriends2();
             case 3:
                 return new FragBookmark();
             default:

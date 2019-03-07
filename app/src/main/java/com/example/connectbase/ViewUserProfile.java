@@ -390,7 +390,7 @@ public class ViewUserProfile extends AppCompatActivity {
                 } else {
                     ivResume.setClickable(true);
                     dialog.dismiss();
-                    Toast.makeText(ViewUserProfile.this, task.getException().getMessage(), Toast.LENGTH_SHORT);
+                    Toast.makeText(ViewUserProfile.this, task.getException().getMessage(), Toast.LENGTH_SHORT).show();
                 }
 
             }).addOnProgressListener(taskSnapshot -> {

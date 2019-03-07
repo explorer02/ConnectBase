@@ -125,7 +125,7 @@ public class ChatActivity extends AppCompatActivity {
 
         actionBar.setDisplayShowCustomEnabled(true);
 
-        mFriendReference = FirebaseDatabase.getInstance().getReference().child("Friends");
+        mFriendReference = FirebaseDatabase.getInstance().getReference().child("Friend");
         mChatReference = FirebaseDatabase.getInstance().getReference().child("Chats");
         mChatImageReference = FirebaseStorage.getInstance().getReference().child("ChatImage");
         mChatFileReference = FirebaseStorage.getInstance().getReference().child("ChatFiles");
@@ -1154,8 +1154,6 @@ public class ChatActivity extends AppCompatActivity {
                                     viewHolderImage.progressBar.setProgress(progress);
                                 });
                             }
-
-
 
 
                         } else {

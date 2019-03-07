@@ -77,7 +77,7 @@ public class DiscoverPeopleActivity extends AppCompatActivity implements UserAda
 
         mUserReference = FirebaseDatabase.getInstance().getReference().child("Users");
         mBookmarkReference=FirebaseDatabase.getInstance().getReference().child("Bookmark");
-        mFriendReference=FirebaseDatabase.getInstance().getReference().child("Friends");
+        mFriendReference = FirebaseDatabase.getInstance().getReference().child("Friend");
         mInviteReference=FirebaseDatabase.getInstance().getReference().child("Invites");
         mTagsReference=FirebaseDatabase.getInstance().getReference().child("Tags");
         searchView.setHint("Search....");

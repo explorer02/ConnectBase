@@ -15,7 +15,9 @@
             android:id="@+id/et_fragBookmark_search"
             android:background="@drawable/circular_edittext_background"
             android:maxLength="10"
-            android:layout_height="wrap_content" />
+            android:layout_height="wrap_content"
+            android:inputType="textAutoComplete"
+            android:importantForAutofill="no" />
 
     <android.support.v7.widget.RecyclerView
         android:id="@+id/list_fragBookmark"
