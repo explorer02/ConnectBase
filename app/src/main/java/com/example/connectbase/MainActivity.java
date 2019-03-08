@@ -28,15 +28,15 @@ public class MainActivity extends AppCompatActivity implements FragInviteRequest
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        mAuth=FirebaseAuth.getInstance();
-        Toolbar toolbar=findViewById(R.id.toolbar_main);
+        mAuth = FirebaseAuth.getInstance();
+        Toolbar toolbar = findViewById(R.id.toolbar_main);
         setSupportActionBar(toolbar);
         getSupportActionBar().setTitle("Connect Base");
 
-        viewPager=findViewById(R.id.viewPager_main);
-        viewPagerAdapter=new ViewPagerAdapterMain(getSupportFragmentManager());
+        viewPager = findViewById(R.id.viewPager_main);
+        viewPagerAdapter = new ViewPagerAdapterMain(getSupportFragmentManager());
         viewPager.setAdapter(viewPagerAdapter);
-        viewPager.setCurrentItem(1,true);
+        viewPager.setCurrentItem(1, true);
         tabLayout = findViewById(R.id.tablayout_main);
         tabLayout.setupWithViewPager(viewPager);
 
@@ -45,12 +45,11 @@ public class MainActivity extends AppCompatActivity implements FragInviteRequest
     @Override
     protected void onStart() {
         super.onStart();
-        if (mAuth.getCurrentUser()==null){
-            startActivity(new Intent(this,StartActivity.class));
+        if (mAuth.getCurrentUser() == null) {
+            startActivity(new Intent(this, StartActivity.class));
             finish();
-        }
-        else {
-            currentId=mAuth.getUid();
+        } else {
+            currentId = mAuth.getUid();
             askPermissions();
         }
 
@@ -66,21 +65,21 @@ public class MainActivity extends AppCompatActivity implements FragInviteRequest
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        getMenuInflater().inflate(R.menu.main_activity_menu,menu);
+        getMenuInflater().inflate(R.menu.main_activity_menu, menu);
         return true;
     }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        switch (item.getItemId()){
+        switch (item.getItemId()) {
             case R.id.menu_main_logout:
                 logout();
                 break;
             case R.id.menu_main_update:
-                startActivity(new Intent(this,UpdateProfileActivity.class).putExtra("id",currentId));
+                startActivity(new Intent(this, UpdateProfileActivity.class).putExtra("id", currentId));
                 break;
             case R.id.menu_main_discover:
-                startActivity(new Intent(this,DiscoverPeopleActivity.class).putExtra("id",currentId));
+                startActivity(new Intent(this, DiscoverPeopleActivity.class).putExtra("id", currentId));
                 break;
         }
         return true;
@@ -89,7 +88,7 @@ public class MainActivity extends AppCompatActivity implements FragInviteRequest
     private void logout() {
         mAuth.signOut();
         finish();
-        startActivity(new Intent(this,StartActivity.class));
+        startActivity(new Intent(this, StartActivity.class));
     }
 
     @Override

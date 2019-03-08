@@ -1,61 +1,31 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:orientation="vertical"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:paddingStart="20dp"
+    android:paddingTop="20dp"
+    android:paddingEnd="20dp"
+    android:paddingBottom="20dp">
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:id="@+id/linLay_LFBSD_SendMessage"
-        android:orientation="horizontal"
-        android:layout_marginTop="10dp"
-        android:layout_height="wrap_content">
-
-        <ImageView
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:layout_marginStart="20dp"
-            android:src="@drawable/ic_message" />
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="20dp"
-            android:layout_gravity="center_vertical"
-            android:text="Send Message"
-            android:textSize="20sp" />
-    </LinearLayout>
-
-    <View
-        android:layout_below="@id/linLay_LFBSD_SendMessage"
-        android:layout_marginTop="5dp"
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:background="?android:attr/listDivider" />
-
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:id="@+id/linLay_LFBSD_ViewProfile"
-        android:layout_below="@id/linLay_LFBSD_SendMessage"
+    <TextView
+        android:id="@+id/tv_lFBSD_sendMessage"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginTop="10dp"
-        android:layout_marginBottom="50dp"
-        android:orientation="horizontal">
+        android:layout_weight="1"
+        android:drawableTop="@drawable/ic_message"
+        android:gravity="center"
+        android:text="Send Message"
+        android:textSize="20sp" />
 
-        <ImageView
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:layout_marginStart="20dp"
-            android:src="@drawable/ic_account" />
+    <TextView
+        android:id="@+id/tv_lFBSD_viewProfile"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:drawableTop="@drawable/ic_account"
+        android:gravity="center"
+        android:text="View Profile"
+        android:textSize="20sp" />
 
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center_vertical"
-            android:layout_marginStart="20dp"
-            android:text="View Profile"
-            android:textSize="20sp" />
-    </LinearLayout>
-
-</RelativeLayout>
+</LinearLayout>

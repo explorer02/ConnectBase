@@ -40,14 +40,14 @@ import de.hdodenhof.circleimageview.CircleImageView;
 public class FragBookmark extends Fragment {
 
     EditText etSearch;
-    DatabaseReference mBookmarkReference,mUserReference;
+    DatabaseReference mBookmarkReference, mUserReference;
     FirebaseRecyclerOptions bookmarkOptions;
     RecyclerView bookmarkList;
     String currentId;
     View view;
-    FirebaseRecyclerAdapter<UserId,FragBookmark.ViewHolder>adapter;
-    HashMap<String,Users>usersHashMap=new HashMap<>();
-    ArrayList<String>arrayId=new ArrayList<>();
+    FirebaseRecyclerAdapter<UserId, FragBookmark.ViewHolder> adapter;
+    HashMap<String, Users> usersHashMap = new HashMap<>();
+    ArrayList<String> arrayId = new ArrayList<>();
 
 
     public FragBookmark() {
@@ -58,23 +58,23 @@ public class FragBookmark extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
-        view=inflater.inflate(R.layout.fragment_bookmark, container, false);
+        view = inflater.inflate(R.layout.fragment_bookmark, container, false);
         initialiseVariables();
         return view;
 
     }
 
-    void initialiseVariables(){
-        mBookmarkReference= FirebaseDatabase.getInstance().getReference().child("Bookmark");
-        currentId= FirebaseAuth.getInstance().getUid();
-        mUserReference=FirebaseDatabase.getInstance().getReference().child("Users");
-        bookmarkList=view.findViewById(R.id.list_fragBookmark);
-        LinearLayoutManager manager=new LinearLayoutManager(view.getContext());
+    void initialiseVariables() {
+        mBookmarkReference = FirebaseDatabase.getInstance().getReference().child("Bookmark");
+        currentId = FirebaseAuth.getInstance().getUid();
+        mUserReference = FirebaseDatabase.getInstance().getReference().child("Users");
+        bookmarkList = view.findViewById(R.id.list_fragBookmark);
+        LinearLayoutManager manager = new LinearLayoutManager(view.getContext());
         bookmarkList.setLayoutManager(manager);
-        bookmarkOptions=new FirebaseRecyclerOptions.Builder<UserId>()
-                .setQuery(mBookmarkReference.child(currentId).orderByChild("time"),UserId.class)
+        bookmarkOptions = new FirebaseRecyclerOptions.Builder<UserId>()
+                .setQuery(mBookmarkReference.child(currentId).orderByChild("time"), UserId.class)
                 .build();
-        etSearch=view.findViewById(R.id.et_fragBookmark_search);
+        etSearch = view.findViewById(R.id.et_fragBookmark_search);
         etSearch.setInputType(InputType.TYPE_NULL);
 
 
@@ -98,18 +98,18 @@ public class FragBookmark extends Fragment {
             @Override
             public void afterTextChanged(Editable s) {
 
-                if(!s.toString().trim().isEmpty())
+                if (!s.toString().trim().isEmpty())
                     loadIndices(s.toString());
 
             }
         });
 
-        adapter=new FirebaseRecyclerAdapter<UserId, ViewHolder>(bookmarkOptions) {
+        adapter = new FirebaseRecyclerAdapter<UserId, ViewHolder>(bookmarkOptions) {
             @Override
             protected void onBindViewHolder(@NonNull ViewHolder holder, int position, @NonNull UserId model) {
 
-                String id=getRef(position).getKey();
-                arrayId.add(position,id);
+                String id = getRef(position).getKey();
+                arrayId.add(position, id);
 
                 mUserReference.child(id).addValueEventListener(new ValueEventListener() {
                     @Override
@@ -118,16 +118,16 @@ public class FragBookmark extends Fragment {
                         holder.star.setLiked(true);
                         holder.tvName.setText(dataSnapshot.child("name").getValue().toString());
                         holder.tvPosition.setText(dataSnapshot.child("position").getValue().toString());
-                        String image=dataSnapshot.child("image").getValue().toString();
+                        String image = dataSnapshot.child("image").getValue().toString();
 
-                        Users user=dataSnapshot.getValue(Users.class);
-                        usersHashMap.put(id,user);
+                        Users user = dataSnapshot.getValue(Users.class);
+                        usersHashMap.put(id, user);
                         etSearch.setInputType(InputType.TYPE_TEXT_FLAG_CAP_WORDS);
-                        if(!image.isEmpty())
-                        Picasso.get()
-                                .load(image)
-                                .placeholder(R.drawable.avatar)
-                                .into(holder.ivPic);
+                        if (!image.isEmpty())
+                            Picasso.get()
+                                    .load(image)
+                                    .placeholder(R.drawable.avatar)
+                                    .into(holder.ivPic);
                     }
 
                     @Override
@@ -144,11 +144,11 @@ public class FragBookmark extends Fragment {
 
                     @Override
                     public void unLiked(LikeButton likeButton) {
-                        showUnBookmarkDialog(id,holder.star);
+                        showUnBookmarkDialog(id, holder.star);
                     }
                 });
 
-                holder.itemView.setOnClickListener(v -> openUserProfile(id,holder.itemView.getContext()));
+                holder.itemView.setOnClickListener(v -> openUserProfile(id, holder.itemView.getContext()));
 
             }
 
@@ -156,7 +156,7 @@ public class FragBookmark extends Fragment {
             @Override
             public ViewHolder onCreateViewHolder(@NonNull ViewGroup viewGroup, int i) {
 
-                View view=LayoutInflater.from(viewGroup.getContext()).inflate(R.layout.layout_row_bookmark,viewGroup,false);
+                View view = LayoutInflater.from(viewGroup.getContext()).inflate(R.layout.layout_row_bookmark, viewGroup, false);
 
                 return new ViewHolder(view);
             }
@@ -171,22 +171,22 @@ public class FragBookmark extends Fragment {
 
     private void loadIndices(String text) {
 
-            for (int i = 0; i < arrayId.size(); i++) {
+        for (int i = 0; i < arrayId.size(); i++) {
 
-                if (usersHashMap.get(arrayId.get(i)).getName().toLowerCase().contains(text.toLowerCase())){
+            if (usersHashMap.get(arrayId.get(i)).getName().toLowerCase().contains(text.toLowerCase())) {
 
-                    bookmarkList.smoothScrollToPosition(i);
-                    break;
-                }
+                bookmarkList.smoothScrollToPosition(i);
+                break;
             }
+        }
     }
 
-    private void showUnBookmarkDialog(String id,final View star) {
+    private void showUnBookmarkDialog(String id, final View star) {
 
 
-        AlertDialog.Builder dialog=new AlertDialog.Builder(view.getContext());
+        AlertDialog.Builder dialog = new AlertDialog.Builder(view.getContext());
         dialog.setTitle("Remove from Bookmarks")
-                .setMessage("Are you sure you want to remove "+usersHashMap.get(id).getName()+" from Bookmarks??")
+                .setMessage("Are you sure you want to remove " + usersHashMap.get(id).getName() + " from Bookmarks??")
                 .setNegativeButton("Cancel", (dialog12, which) -> ((LikeButton) star).setLiked(true))
 
                 .setPositiveButton("Ok", (dialog1, which) -> mBookmarkReference.child(currentId).child(id).removeValue().addOnCompleteListener(task -> {
@@ -200,25 +200,26 @@ public class FragBookmark extends Fragment {
 
     }
 
-    public class ViewHolder extends RecyclerView.ViewHolder{
+    public class ViewHolder extends RecyclerView.ViewHolder {
 
-        TextView tvName,tvPosition;
+        TextView tvName, tvPosition;
         CircleImageView ivPic;
         LikeButton star;
+
         public ViewHolder(@NonNull View itemView) {
             super(itemView);
-            tvName=itemView.findViewById(R.id.tv_layoutRowBookmark_name);
-            tvPosition=itemView.findViewById(R.id.tv_layoutRowBookmark_position);
-            ivPic=itemView.findViewById(R.id.iv_layoutRowBookmark_profilePic);
-            star=itemView.findViewById(R.id.star_layoutRowBookmark_like);
+            tvName = itemView.findViewById(R.id.tv_layoutRowBookmark_name);
+            tvPosition = itemView.findViewById(R.id.tv_layoutRowBookmark_position);
+            ivPic = itemView.findViewById(R.id.iv_layoutRowBookmark_profilePic);
+            star = itemView.findViewById(R.id.star_layoutRowBookmark_like);
         }
     }
 
-    private void openUserProfile(String id, Context context){
+    private void openUserProfile(String id, Context context) {
 
-        Intent intent=new Intent(context,ViewUserProfile.class);
-        intent.putExtra("user",usersHashMap.get(id));
-        intent.putExtra("id",id);
+        Intent intent = new Intent(context, ViewUserProfile.class);
+        intent.putExtra("user", usersHashMap.get(id));
+        intent.putExtra("id", id);
         startActivity(intent);
 
     }

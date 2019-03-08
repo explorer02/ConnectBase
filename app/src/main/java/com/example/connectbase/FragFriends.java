@@ -38,15 +38,15 @@ import de.hdodenhof.circleimageview.CircleImageView;
 
 public class FragFriends extends Fragment {
 
-    DatabaseReference mFriendReference,mUserReference;
+    DatabaseReference mFriendReference, mUserReference;
     RecyclerView friendList;
-    String currentId=MainActivity.currentId;
+    String currentId = MainActivity.currentId;
     View view;
     EditText etSearch;
     FirebaseRecyclerAdapter<FriendsModelClass, ViewHolder> adapter;
-    HashMap<String,Users> usersHashMap=new HashMap<>();
+    HashMap<String, Users> usersHashMap = new HashMap<>();
     FirebaseRecyclerOptions friendOptions;
-    ArrayList<String> arrayId=new ArrayList<>();
+    ArrayList<String> arrayId = new ArrayList<>();
 
     public FragFriends() {
         // Required empty public constructor
@@ -56,7 +56,7 @@ public class FragFriends extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
-        view=inflater.inflate(R.layout.fragment_bookmark, container, false);
+        view = inflater.inflate(R.layout.fragment_bookmark, container, false);
         initialiseVariables();
         return view;
     }
@@ -64,12 +64,12 @@ public class FragFriends extends Fragment {
     private void initialiseVariables() {
 
         mFriendReference = FirebaseDatabase.getInstance().getReference().child("Friend");
-        currentId= FirebaseAuth.getInstance().getUid();
+        currentId = FirebaseAuth.getInstance().getUid();
         mUserReference = FirebaseDatabase.getInstance().getReference().child("Users");
-        friendList=view.findViewById(R.id.list_fragBookmark);
-        LinearLayoutManager manager=new LinearLayoutManager(view.getContext());
+        friendList = view.findViewById(R.id.list_fragBookmark);
+        LinearLayoutManager manager = new LinearLayoutManager(view.getContext());
         friendList.setLayoutManager(manager);
-        etSearch=view.findViewById(R.id.et_fragBookmark_search);
+        etSearch = view.findViewById(R.id.et_fragBookmark_search);
         friendOptions = new FirebaseRecyclerOptions.Builder<FriendsModelClass>()
                 .setQuery(mFriendReference.child(currentId).orderByChild("time"), FriendsModelClass.class)
                 .build();
@@ -156,18 +156,18 @@ public class FragFriends extends Fragment {
 
     }
 
-    public class ViewHolder extends RecyclerView.ViewHolder{
+    public class ViewHolder extends RecyclerView.ViewHolder {
 
-        TextView tvName,tvPosition;
+        TextView tvName, tvPosition;
         CircleImageView ivPic;
         LikeButton star;
 
         ViewHolder(@NonNull View itemView) {
             super(itemView);
-            tvName=itemView.findViewById(R.id.tv_layoutRowBookmark_name);
-            tvPosition=itemView.findViewById(R.id.tv_layoutRowBookmark_position);
-            ivPic=itemView.findViewById(R.id.iv_layoutRowBookmark_profilePic);
-            star=itemView.findViewById(R.id.star_layoutRowBookmark_like);
+            tvName = itemView.findViewById(R.id.tv_layoutRowBookmark_name);
+            tvPosition = itemView.findViewById(R.id.tv_layoutRowBookmark_position);
+            ivPic = itemView.findViewById(R.id.iv_layoutRowBookmark_profilePic);
+            star = itemView.findViewById(R.id.star_layoutRowBookmark_like);
             star.setVisibility(View.GONE);
 
         }
@@ -179,8 +179,8 @@ public class FragFriends extends Fragment {
         dialog.setCancelable(true);
         View view = getLayoutInflater().inflate(R.layout.layout_friend_bottomsheetdialog, null, false);
 
-        View sendMessage = view.findViewById(R.id.linLay_LFBSD_SendMessage);
-        View viewProfile = view.findViewById(R.id.linLay_LFBSD_ViewProfile);
+        View sendMessage = view.findViewById(R.id.tv_lFBSD_sendMessage);
+        View viewProfile = view.findViewById(R.id.tv_lFBSD_viewProfile);
 
         sendMessage.setOnClickListener(v -> {
             FragFriends.this.openChatActivity(id, context);
@@ -204,17 +204,17 @@ public class FragFriends extends Fragment {
         startActivity(intent);
     }
 
-    private void openUserProfile(String id, Context context){
+    private void openUserProfile(String id, Context context) {
 
-        Intent intent=new Intent(context,ViewUserProfile.class);
-        intent.putExtra("user",usersHashMap.get(id));
-        intent.putExtra("id",id);
+        Intent intent = new Intent(context, ViewUserProfile.class);
+        intent.putExtra("user", usersHashMap.get(id));
+        intent.putExtra("id", id);
         startActivity(intent);
     }
 
     private void loadIndices(String text) {
         for (int i = 0; i < arrayId.size(); i++) {
-            if (usersHashMap.get(arrayId.get(i)).getName().toLowerCase().contains(text.toLowerCase())){
+            if (usersHashMap.get(arrayId.get(i)).getName().toLowerCase().contains(text.toLowerCase())) {
                 friendList.smoothScrollToPosition(i);
                 break;
             }

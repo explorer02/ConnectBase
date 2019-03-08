@@ -16,7 +16,7 @@ public class ViewPagerAdapterMain extends FragmentPagerAdapter {
     @Nullable
     @Override
     public CharSequence getPageTitle(int position) {
-        switch (position){
+        switch (position) {
             case 0:
                 return "Invites";
             case 1:
@@ -32,7 +32,7 @@ public class ViewPagerAdapterMain extends FragmentPagerAdapter {
 
     @Override
     public Fragment getItem(int i) {
-        switch (i){
+        switch (i) {
             case 0:
                 return new FragInviteRequest();
             case 1:

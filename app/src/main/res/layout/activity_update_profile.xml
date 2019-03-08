@@ -11,8 +11,9 @@
         android:id="@+id/relativeLayout_update_profile"
         tools:context=".UpdateProfileActivity">
 
-        <include layout="@layout/layout_toolbar"
-            android:id="@+id/toolbar_updateProfile"/>
+        <include
+            layout="@layout/layout_toolbar"
+            android:id="@+id/toolbar_updateProfile" />
 
         <de.hdodenhof.circleimageview.CircleImageView
             android:id="@+id/iv_updateProfile_profilePic"
@@ -243,7 +244,7 @@
             android:textSize="20sp"
             android:background="@drawable/layout_circular_buttons"
             android:text="Update Profile"
-            android:layout_marginBottom="50dp"/>
+            android:layout_marginBottom="50dp" />
 
 
     </RelativeLayout>

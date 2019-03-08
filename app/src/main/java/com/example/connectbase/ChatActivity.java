@@ -125,7 +125,7 @@ public class ChatActivity extends AppCompatActivity {
 
         actionBar.setDisplayShowCustomEnabled(true);
 
-        mFriendReference = FirebaseDatabase.getInstance().getReference().child("Friend");
+        mFriendReference = FirebaseDatabase.getInstance().getReference().child("Friends");
         mChatReference = FirebaseDatabase.getInstance().getReference().child("Chats");
         mChatImageReference = FirebaseStorage.getInstance().getReference().child("ChatImage");
         mChatFileReference = FirebaseStorage.getInstance().getReference().child("ChatFiles");

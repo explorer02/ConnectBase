@@ -40,57 +40,57 @@ import de.hdodenhof.circleimageview.CircleImageView;
 
 public class ViewUserProfile extends AppCompatActivity {
 
-    String currentId=MainActivity.currentId;
+    String currentId = MainActivity.currentId;
     String uid;
-    ArrayList<TextView> arrayView=new ArrayList<>();
-    DatabaseReference mBookmarkReference,mFriendReference,mInviteReference;
-    final int REQUEST_CODE_STORAGE_WRITE=202;
+    ArrayList<TextView> arrayView = new ArrayList<>();
+    DatabaseReference mBookmarkReference, mFriendReference, mInviteReference;
+    final int REQUEST_CODE_STORAGE_WRITE = 202;
     ImageView ivResume;
     TextView tvResume;
     StorageReference mResumeReference;
     ProgressDialog dialog;
     CircleImageView ivProfilePic;
-    
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_view_user_profile);
 
-        Toolbar toolbar=findViewById(R.id.toolbar_ViewUserProfile);
+        Toolbar toolbar = findViewById(R.id.toolbar_ViewUserProfile);
         setSupportActionBar(toolbar);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 
-        Users user=(Users) getIntent().getSerializableExtra("user");
-        uid=getIntent().getStringExtra("id");
+        Users user = (Users) getIntent().getSerializableExtra("user");
+        uid = getIntent().getStringExtra("id");
 
         getSupportActionBar().setTitle(user.getName());
 
-        mBookmarkReference=FirebaseDatabase.getInstance().getReference().child("Bookmark");
-        mFriendReference=FirebaseDatabase.getInstance().getReference().child("Friends");
-        mInviteReference=FirebaseDatabase.getInstance().getReference().child("Invites");
-        mResumeReference= FirebaseStorage.getInstance().getReference().child("Resume");
+        mBookmarkReference = FirebaseDatabase.getInstance().getReference().child("Bookmark");
+        mFriendReference = FirebaseDatabase.getInstance().getReference().child("Friends");
+        mInviteReference = FirebaseDatabase.getInstance().getReference().child("Invites");
+        mResumeReference = FirebaseStorage.getInstance().getReference().child("Resume");
 
 
-        arrayView.add( findViewById(R.id.tv_ViewUserProfile_age));
+        arrayView.add(findViewById(R.id.tv_ViewUserProfile_age));
         arrayView.add(findViewById(R.id.tv_ViewUserProfile_qualification));
         arrayView.add(findViewById(R.id.tv_ViewUserProfile_organisation));
         arrayView.add(findViewById(R.id.tv_ViewUserProfile_position));
-        arrayView.add( findViewById(R.id.tv_ViewUserProfile_skills));
-        arrayView.add( findViewById(R.id.tv_ViewUserProfile_experience));
-        arrayView.add( findViewById(R.id.tv_ViewUserProfile_city));
-        arrayView.add( findViewById(R.id.tv_ViewUserProfile_state));
+        arrayView.add(findViewById(R.id.tv_ViewUserProfile_skills));
+        arrayView.add(findViewById(R.id.tv_ViewUserProfile_experience));
+        arrayView.add(findViewById(R.id.tv_ViewUserProfile_city));
+        arrayView.add(findViewById(R.id.tv_ViewUserProfile_state));
         ivProfilePic = findViewById(R.id.iv_ViewUserProfile_profilePic);
-        ivResume=findViewById(R.id.iv_ViewUserProfile_resume);
-        tvResume=findViewById(R.id.tv_ViewUserProfile_resume);
+        ivResume = findViewById(R.id.iv_ViewUserProfile_resume);
+        tvResume = findViewById(R.id.tv_ViewUserProfile_resume);
 
         tvResume.setVisibility(View.GONE);
         ivResume.setVisibility(View.GONE);
 
-        final LikeButton star=findViewById(R.id.star_viewUserProfile_bookmark);
+        final LikeButton star = findViewById(R.id.star_viewUserProfile_bookmark);
         star.setLiked(true);
-        final Button btnSend,btnReject;
-        btnSend=findViewById(R.id.btn_ViewUserProfile_sendInviteRequest);
-        btnReject=findViewById(R.id.btn_ViewUserProfile_rejectInviteRequest);
+        final Button btnSend, btnReject;
+        btnSend = findViewById(R.id.btn_ViewUserProfile_sendInviteRequest);
+        btnReject = findViewById(R.id.btn_ViewUserProfile_rejectInviteRequest);
         btnReject.setVisibility(View.GONE);
 
         btnSend.setTag("not_friend");
@@ -100,18 +100,18 @@ public class ViewUserProfile extends AppCompatActivity {
             @Override
             public void liked(LikeButton likeButton) {
 
-                HashMap map=new HashMap();
-                map.put("star","true");
-                map.put("time",ServerValue.TIMESTAMP);
+                HashMap map = new HashMap();
+                map.put("star", "true");
+                map.put("time", ServerValue.TIMESTAMP);
                 mBookmarkReference.child(currentId).child(uid).setValue(map);
 
             }
 
             @Override
             public void unLiked(LikeButton likeButton) {
-                AlertDialog.Builder dialog=new AlertDialog.Builder(ViewUserProfile.this);
+                AlertDialog.Builder dialog = new AlertDialog.Builder(ViewUserProfile.this);
                 dialog.setTitle("Remove from Bookmarks")
-                        .setMessage("Are you sure you want to remove "+user.getName()+" from Bookmarks??")
+                        .setMessage("Are you sure you want to remove " + user.getName() + " from Bookmarks??")
                         .setNegativeButton("Cancel", (dialog12, which) -> star.setLiked(true))
                         .setPositiveButton("Ok", (dialog1, which) -> {
                             mBookmarkReference.child(currentId).child(uid).removeValue();
@@ -124,7 +124,7 @@ public class ViewUserProfile extends AppCompatActivity {
 
         ivResume.setOnClickListener(v -> {
             String location = Environment.getExternalStorageDirectory() + "/ConnectBase/Resume/" + uid + ".pdf";
-            File file=new File(location);
+            File file = new File(location);
 
             if (file.exists()) {
                 AlertDialog.Builder dialog = new AlertDialog.Builder(this);
@@ -147,9 +147,7 @@ public class ViewUserProfile extends AppCompatActivity {
 
                 });
                 dialog.show();
-            }
-
-            else {
+            } else {
                 downloadResume();
                 ivResume.setClickable(false);
             }
@@ -159,25 +157,23 @@ public class ViewUserProfile extends AppCompatActivity {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                 btnSend.setClickable(true);
-                if(dataSnapshot.hasChild(uid)){
-                    String type=dataSnapshot.child(uid).child("request_type").getValue().toString();
-                    if(type.equals("request_sent")){
+                if (dataSnapshot.hasChild(uid)) {
+                    String type = dataSnapshot.child(uid).child("request_type").getValue().toString();
+                    if (type.equals("request_sent")) {
                         btnSend.setText("Cancel Invite");
                         btnReject.setVisibility(View.GONE);
-                    }
-                    else {
+                    } else {
                         btnSend.setText("Accept Invite");
                         btnReject.setVisibility(View.VISIBLE);
                     }
                     btnSend.setTag(type);
                     ivResume.setVisibility(View.GONE);
                     tvResume.setVisibility(View.GONE);
-                }
-                else {
+                } else {
                     mFriendReference.child(currentId).addValueEventListener(new ValueEventListener() {
                         @Override
                         public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                            if(dataSnapshot.hasChild(uid)){
+                            if (dataSnapshot.hasChild(uid)) {
                                 btnSend.setTag("friend");
                                 if (!user.getResume().trim().isEmpty())
                                     ivResume.setVisibility(View.VISIBLE);
@@ -185,8 +181,7 @@ public class ViewUserProfile extends AppCompatActivity {
                                 btnSend.setText("Remove from FriendList");
                                 btnSend.setClickable(true);
                                 btnReject.setVisibility(View.GONE);
-                            }
-                            else {
+                            } else {
                                 btnSend.setTag("not_friend");
                                 ivResume.setVisibility(View.GONE);
                                 tvResume.setVisibility(View.GONE);
@@ -219,7 +214,7 @@ public class ViewUserProfile extends AppCompatActivity {
 
             btnSend.setClickable(false);
 
-            String type=btnSend.getTag().toString();
+            String type = btnSend.getTag().toString();
             switch (type) {
                 case "not_friend":
 
@@ -347,17 +342,16 @@ public class ViewUserProfile extends AppCompatActivity {
             new CommonFunctions().downloadProfilePic(getApplicationContext(), uid, ivProfilePic, user.getImage());
 
 
-        }
-        else ivProfilePic.setImageResource(R.drawable.avatar);
+        } else ivProfilePic.setImageResource(R.drawable.avatar);
 
-        arrayView.get(0).setText("Age:\t\t"+user.getAge());
-        arrayView.get(1).setText("Qualifications:\t\t"+user.getQualification());
-        arrayView.get(2).setText("Organisation:\t\t"+user.getOrganisation());
-        arrayView.get(3).setText("Position:\t\t"+user.getPosition());
-        arrayView.get(4).setText("Skills:\t\t"+user.getSkills());
-        arrayView.get(5).setText("Experience:\t\t"+user.getExperience());
-        arrayView.get(6).setText("City:\t\t"+user.getCity());
-        arrayView.get(7).setText("State:\t\t"+user.getState());
+        arrayView.get(0).setText("Age:\t\t" + user.getAge());
+        arrayView.get(1).setText("Qualifications:\t\t" + user.getQualification());
+        arrayView.get(2).setText("Organisation:\t\t" + user.getOrganisation());
+        arrayView.get(3).setText("Position:\t\t" + user.getPosition());
+        arrayView.get(4).setText("Skills:\t\t" + user.getSkills());
+        arrayView.get(5).setText("Experience:\t\t" + user.getExperience());
+        arrayView.get(6).setText("City:\t\t" + user.getCity());
+        arrayView.get(7).setText("State:\t\t" + user.getState());
 
         ivProfilePic.setOnClickListener(v -> {
             String path = Environment.getExternalStorageDirectory() + "/ConnectBase/ProfilePics/" + uid + ".jpg";
@@ -368,17 +362,15 @@ public class ViewUserProfile extends AppCompatActivity {
 
     }
 
-    void downloadResume(){
-        if(ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)!= PackageManager.PERMISSION_GRANTED)
-        {
-            ActivityCompat.requestPermissions(this,new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},REQUEST_CODE_STORAGE_WRITE);
-        }
-        else {
+    void downloadResume() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, REQUEST_CODE_STORAGE_WRITE);
+        } else {
             Toast.makeText(this, "Downloading file from Server...", Toast.LENGTH_SHORT).show();
 
             File parentFile = new File(Environment.getExternalStorageDirectory() + "/ConnectBase/Resume/");
             parentFile.mkdirs();
-            final File file=new File(parentFile,uid+".pdf");
+            final File file = new File(parentFile, uid + ".pdf");
             if (file.exists())
                 file.delete();
             showDialog("Downloading Resume", ProgressDialog.STYLE_HORIZONTAL);
@@ -406,10 +398,10 @@ public class ViewUserProfile extends AppCompatActivity {
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
 
-        switch (requestCode){
+        switch (requestCode) {
             case REQUEST_CODE_STORAGE_WRITE:
 
-                if(grantResults.length>0&&grantResults[0]==PackageManager.PERMISSION_GRANTED)
+                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED)
                     downloadResume();
                 else {
                     ivResume.setClickable(true);
@@ -419,8 +411,8 @@ public class ViewUserProfile extends AppCompatActivity {
         }
     }
 
-    private void showDialog(String message,int style){
-        dialog=new ProgressDialog(this);
+    private void showDialog(String message, int style) {
+        dialog = new ProgressDialog(this);
         dialog.setMessage(message);
         dialog.setCancelable(false);
         dialog.setProgressStyle(style);

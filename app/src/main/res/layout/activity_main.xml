@@ -11,8 +11,9 @@
         android:id="@+id/appbarLayout_main"
         android:layout_height="wrap_content">
 
-        <include layout="@layout/layout_toolbar"
-            android:id="@+id/toolbar_main"/>
+        <include
+            layout="@layout/layout_toolbar"
+            android:id="@+id/toolbar_main" />
 
         <android.support.design.widget.TabLayout
             android:layout_width="match_parent"
@@ -25,7 +26,7 @@
             android:background="@color/colorPrimary"
             app:tabTextColor="@color/colorWhite"
             android:layout_height="wrap_content"
-            android:layout_marginTop="0dp"/>
+            android:layout_marginTop="0dp" />
 
     </android.support.design.widget.AppBarLayout>
 
@@ -34,6 +35,6 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_below="@id/appbarLayout_main"
-        android:layout_marginTop="0dp"/>
+        android:layout_marginTop="0dp" />
 
 </RelativeLayout>

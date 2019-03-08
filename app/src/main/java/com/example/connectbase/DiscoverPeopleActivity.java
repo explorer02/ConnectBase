@@ -36,18 +36,18 @@ import java.util.HashMap;
 import de.hdodenhof.circleimageview.CircleImageView;
 
 
-public class DiscoverPeopleActivity extends AppCompatActivity implements UserAdapter.onclickItem{
+public class DiscoverPeopleActivity extends AppCompatActivity implements UserAdapter.onclickItem {
 
     RecyclerView recyclerView;
     UserAdapter adapter;
-    ArrayList<Users>userList,subUserList;
-    ArrayList<String>tags=new ArrayList<>();
-    ArrayList<String>userKeyList,subUserkeyList;
-    DatabaseReference mUserReference,mBookmarkReference,mInviteReference,mFriendReference,mTagsReference;
+    ArrayList<Users> userList, subUserList;
+    ArrayList<String> tags = new ArrayList<>();
+    ArrayList<String> userKeyList, subUserkeyList;
+    DatabaseReference mUserReference, mBookmarkReference, mInviteReference, mFriendReference, mTagsReference;
     BottomSheetBehavior bottomSheetBehavior;
-    String currentId=FirebaseAuth.getInstance().getUid();
+    String currentId = FirebaseAuth.getInstance().getUid();
     MaterialSearchView searchView;
-    int listSelected=0;
+    int listSelected = 0;
     CommonFunctions commonFunctions = new CommonFunctions();
 
 
@@ -60,14 +60,14 @@ public class DiscoverPeopleActivity extends AppCompatActivity implements UserAda
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         getSupportActionBar().setTitle("Discover people");
         searchView = findViewById(R.id.search_view_discover);
-        View bottomSheet=findViewById(R.id.bottom_sheet_discover);
-        bottomSheetBehavior=BottomSheetBehavior.from(bottomSheet);
+        View bottomSheet = findViewById(R.id.bottom_sheet_discover);
+        bottomSheetBehavior = BottomSheetBehavior.from(bottomSheet);
         bottomSheetBehavior.setState(BottomSheetBehavior.STATE_HIDDEN);
 
-        userList=new ArrayList<>();
-        subUserList=new ArrayList<>();
-        userKeyList=new ArrayList<>();
-        subUserkeyList=new ArrayList<>();
+        userList = new ArrayList<>();
+        subUserList = new ArrayList<>();
+        userKeyList = new ArrayList<>();
+        subUserkeyList = new ArrayList<>();
 
         recyclerView = findViewById(R.id.rv_discover);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
@@ -76,10 +76,10 @@ public class DiscoverPeopleActivity extends AppCompatActivity implements UserAda
         recyclerView.setAdapter(adapter);
 
         mUserReference = FirebaseDatabase.getInstance().getReference().child("Users");
-        mBookmarkReference=FirebaseDatabase.getInstance().getReference().child("Bookmark");
+        mBookmarkReference = FirebaseDatabase.getInstance().getReference().child("Bookmark");
         mFriendReference = FirebaseDatabase.getInstance().getReference().child("Friend");
-        mInviteReference=FirebaseDatabase.getInstance().getReference().child("Invites");
-        mTagsReference=FirebaseDatabase.getInstance().getReference().child("Tags");
+        mInviteReference = FirebaseDatabase.getInstance().getReference().child("Invites");
+        mTagsReference = FirebaseDatabase.getInstance().getReference().child("Tags");
         searchView.setHint("Search....");
         searchView.setCursorDrawable(R.drawable.search_background);
 
@@ -103,7 +103,7 @@ public class DiscoverPeopleActivity extends AppCompatActivity implements UserAda
         mUserReference.orderByChild("name").addChildEventListener(new ChildEventListener() {
             @Override
             public void onChildAdded(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {
-                Users users=dataSnapshot.getValue(Users.class);
+                Users users = dataSnapshot.getValue(Users.class);
                 userList.add(users);
                 userKeyList.add(dataSnapshot.getKey());
                 adapter.notifyDataSetChanged();
@@ -168,18 +168,17 @@ public class DiscoverPeopleActivity extends AppCompatActivity implements UserAda
         if (!keyword.isEmpty()) {
             subUserkeyList.clear();
             subUserList.clear();
-            for (int i=0;i<userKeyList.size();i++){
-                keyword=keyword.toLowerCase();
-                if(userList.get(i).getName().toLowerCase().contains(keyword)||userList.get(i).getSkills().toLowerCase().contains(keyword)||userList.get(i).getPosition().toLowerCase().contains(keyword)){
+            for (int i = 0; i < userKeyList.size(); i++) {
+                keyword = keyword.toLowerCase();
+                if (userList.get(i).getName().toLowerCase().contains(keyword) || userList.get(i).getSkills().toLowerCase().contains(keyword) || userList.get(i).getPosition().toLowerCase().contains(keyword)) {
                     subUserList.add(userList.get(i));
                     subUserkeyList.add(userKeyList.get(i));
                 }
             }
             adapter = new UserAdapter(this, subUserList);
             recyclerView.setAdapter(adapter);
-            listSelected=1;
-        }
-        else {
+            listSelected = 1;
+        } else {
             listSelected = 0;
             adapter = new UserAdapter(this, userList);
             recyclerView.setAdapter(adapter);
@@ -199,11 +198,11 @@ public class DiscoverPeopleActivity extends AppCompatActivity implements UserAda
 
     @Override
     public void onBackPressed() {
-        if (bottomSheetBehavior.getState()==BottomSheetBehavior.STATE_EXPANDED||bottomSheetBehavior.getState()==BottomSheetBehavior.STATE_HALF_EXPANDED)
+        if (bottomSheetBehavior.getState() == BottomSheetBehavior.STATE_EXPANDED || bottomSheetBehavior.getState() == BottomSheetBehavior.STATE_HALF_EXPANDED)
             bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
-        else if(searchView.isSearchOpen())
+        else if (searchView.isSearchOpen())
             searchView.closeSearch();
-        else if(listSelected==1&&subUserList.size()==0)
+        else if (listSelected == 1 && subUserList.size() == 0)
             loadData("");
         else
             super.onBackPressed();
@@ -213,23 +212,23 @@ public class DiscoverPeopleActivity extends AppCompatActivity implements UserAda
     @Override
     public void onItemClicked(final int i) {
 
-        ArrayList<String>keyArray=(listSelected>0)?subUserkeyList:userKeyList;
-        ArrayList<Users>userArray=(listSelected>0)?subUserList:userList;
+        ArrayList<String> keyArray = (listSelected > 0) ? subUserkeyList : userKeyList;
+        ArrayList<Users> userArray = (listSelected > 0) ? subUserList : userList;
 
-        final String uid=keyArray.get(i);
+        final String uid = keyArray.get(i);
 
 
-        if(uid.equals(currentId)){
-            startActivity(new Intent(this,UpdateProfileActivity.class).putExtra("id",currentId));
+        if (uid.equals(currentId)) {
+            startActivity(new Intent(this, UpdateProfileActivity.class).putExtra("id", currentId));
             return;
         }
 
         bottomSheetBehavior.setState(BottomSheetBehavior.STATE_HALF_EXPANDED);
-        Toolbar toolbar=findViewById(R.id.toolbar_fragSheet);
+        Toolbar toolbar = findViewById(R.id.toolbar_fragSheet);
 
         toolbar.setTitle(userArray.get(i).getName());
 
-        ArrayList<TextView>arrayView=new ArrayList<>();
+        ArrayList<TextView> arrayView = new ArrayList<>();
         arrayView.add(findViewById(R.id.tv_fragSheet_age));
         arrayView.add(findViewById(R.id.tv_fragSheet_qualification));
         arrayView.add(findViewById(R.id.tv_fragSheet_organisation));
@@ -238,26 +237,24 @@ public class DiscoverPeopleActivity extends AppCompatActivity implements UserAda
         arrayView.add(findViewById(R.id.tv_fragSheet_experience));
         arrayView.add(findViewById(R.id.tv_fragSheet_city));
         arrayView.add(findViewById(R.id.tv_fragSheet_state));
-        CircleImageView ivProfilePic=findViewById(R.id.iv_fragSheet_profilePic);
-        ImageView ivResume=findViewById(R.id.iv_fragSheet_resume);
-        final LikeButton star=findViewById(R.id.star_fragSheet_bookmark);
-        final Button btnSend,btnReject;
-        btnSend=findViewById(R.id.btn_fragSheet_sendInviteRequest);
-        btnReject=findViewById(R.id.btn_fragSheet_rejectInviteRequest);
+        CircleImageView ivProfilePic = findViewById(R.id.iv_fragSheet_profilePic);
+        ImageView ivResume = findViewById(R.id.iv_fragSheet_resume);
+        final LikeButton star = findViewById(R.id.star_fragSheet_bookmark);
+        final Button btnSend, btnReject;
+        btnSend = findViewById(R.id.btn_fragSheet_sendInviteRequest);
+        btnReject = findViewById(R.id.btn_fragSheet_rejectInviteRequest);
         btnReject.setVisibility(View.GONE);
 
         btnSend.setTag("not_friend");
         btnSend.setClickable(false);
 
 
-
         mBookmarkReference.child(currentId).addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                if(dataSnapshot.hasChild(uid)){
+                if (dataSnapshot.hasChild(uid)) {
                     star.setLiked(true);
-                }
-                else star.setLiked(false);
+                } else star.setLiked(false);
             }
 
             @Override
@@ -269,34 +266,31 @@ public class DiscoverPeopleActivity extends AppCompatActivity implements UserAda
         mInviteReference.child(currentId).addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                if(dataSnapshot.hasChild(uid)){
-                    String type=dataSnapshot.child(keyArray.get(i)).child("request_type").getValue().toString();
+                if (dataSnapshot.hasChild(uid)) {
+                    String type = dataSnapshot.child(keyArray.get(i)).child("request_type").getValue().toString();
                     btnSend.setTag(type);
-                    if(type.equals("request_sent")){
+                    if (type.equals("request_sent")) {
                         btnSend.setText("Cancel Invite");
                         btnReject.setVisibility(View.GONE);
 
-                    }
-                    else {
+                    } else {
                         btnSend.setText("Accept Invite");
                         btnReject.setVisibility(View.VISIBLE);
                     }
                     btnSend.setClickable(true);
 
-                }
-                else{
+                } else {
                     mFriendReference.child(currentId).addValueEventListener(new ValueEventListener() {
                         @Override
                         public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                            if(dataSnapshot.hasChild(keyArray.get(i))){
+                            if (dataSnapshot.hasChild(keyArray.get(i))) {
 
                                 btnSend.setTag("friend");
                                 btnSend.setText("Remove from FriendList");
 
                                 btnReject.setVisibility(View.GONE);
                                 btnSend.setClickable(true);
-                            }
-                            else {
+                            } else {
                                 btnSend.setText("Send Invite");
                                 btnSend.setClickable(true);
                             }
@@ -318,13 +312,13 @@ public class DiscoverPeopleActivity extends AppCompatActivity implements UserAda
             }
         });
 
-        
+
         star.setOnLikeListener(new OnLikeListener() {
             @Override
             public void liked(LikeButton likeButton) {
-                HashMap map=new HashMap();
-                map.put("star","true");
-                map.put("time",ServerValue.TIMESTAMP);
+                HashMap map = new HashMap();
+                map.put("star", "true");
+                map.put("time", ServerValue.TIMESTAMP);
                 mBookmarkReference.child(currentId).child(keyArray.get(i)).setValue(map);
             }
 
@@ -460,21 +454,20 @@ public class DiscoverPeopleActivity extends AppCompatActivity implements UserAda
 
         });
 
-            ivResume.setVisibility(View.GONE);
+        ivResume.setVisibility(View.GONE);
         if (!userArray.get(i).getImage().isEmpty()) {
             commonFunctions.downloadProfilePic(this, uid, ivProfilePic, userArray.get(i).getImage());
-        }
-        else ivProfilePic.setImageResource(R.drawable.avatar);
+        } else ivProfilePic.setImageResource(R.drawable.avatar);
 
 
-        arrayView.get(0).setText("Age:\t\t"+userArray.get(i).getAge());
-        arrayView.get(1).setText("Qualifications:\t\t"+userArray.get(i).getQualification());
-        arrayView.get(2).setText("Organisation:\t\t"+userArray.get(i).getOrganisation());
-        arrayView.get(3).setText("Position:\t\t"+userArray.get(i).getPosition());
-        arrayView.get(4).setText("Skills:\t\t"+userArray.get(i).getSkills());
-        arrayView.get(5).setText("Experience:\t\t"+userArray.get(i).getExperience());
-        arrayView.get(6).setText("City:\t\t"+userArray.get(i).getCity());
-        arrayView.get(7).setText("State:\t\t"+userArray.get(i).getState());
+        arrayView.get(0).setText("Age:\t\t" + userArray.get(i).getAge());
+        arrayView.get(1).setText("Qualifications:\t\t" + userArray.get(i).getQualification());
+        arrayView.get(2).setText("Organisation:\t\t" + userArray.get(i).getOrganisation());
+        arrayView.get(3).setText("Position:\t\t" + userArray.get(i).getPosition());
+        arrayView.get(4).setText("Skills:\t\t" + userArray.get(i).getSkills());
+        arrayView.get(5).setText("Experience:\t\t" + userArray.get(i).getExperience());
+        arrayView.get(6).setText("City:\t\t" + userArray.get(i).getCity());
+        arrayView.get(7).setText("State:\t\t" + userArray.get(i).getState());
 
     }
 }

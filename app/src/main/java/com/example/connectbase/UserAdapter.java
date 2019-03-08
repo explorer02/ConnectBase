@@ -20,27 +20,28 @@ public class UserAdapter extends RecyclerView.Adapter<UserAdapter.ViewHolder> {
     private ArrayList<Users> userList;
 
 
-    interface onclickItem{
+    interface onclickItem {
 
         void onItemClicked(int i);
     }
+
     onclickItem activity;
 
     public UserAdapter(Context context, ArrayList<Users> users) {
-        activity=(onclickItem)context;
-        userList=users;
+        activity = (onclickItem) context;
+        userList = users;
     }
 
-    public class ViewHolder extends RecyclerView.ViewHolder{
+    public class ViewHolder extends RecyclerView.ViewHolder {
 
-        TextView tvName,tvPosition;
+        TextView tvName, tvPosition;
         CircleImageView ivPhoto;
 
         public ViewHolder(@NonNull View itemView) {
             super(itemView);
-            tvName=itemView.findViewById(R.id.tv_layoutRowPeople_name);
-            tvPosition=itemView.findViewById(R.id.tv_layoutRowPeople_position);
-            ivPhoto=itemView.findViewById(R.id.iv_layoutRowPeople_profilePic);
+            tvName = itemView.findViewById(R.id.tv_layoutRowPeople_name);
+            tvPosition = itemView.findViewById(R.id.tv_layoutRowPeople_position);
+            ivPhoto = itemView.findViewById(R.id.iv_layoutRowPeople_profilePic);
         }
     }
 
@@ -48,7 +49,7 @@ public class UserAdapter extends RecyclerView.Adapter<UserAdapter.ViewHolder> {
     @Override
     public ViewHolder onCreateViewHolder(@NonNull ViewGroup viewGroup, int i) {
 
-        View view=LayoutInflater.from(viewGroup.getContext()).inflate(R.layout.layout_row_people,viewGroup,false);
+        View view = LayoutInflater.from(viewGroup.getContext()).inflate(R.layout.layout_row_people, viewGroup, false);
 
         return new ViewHolder(view);
     }
@@ -59,10 +60,10 @@ public class UserAdapter extends RecyclerView.Adapter<UserAdapter.ViewHolder> {
         viewHolder.tvName.setText(userList.get(i).getName());
         viewHolder.tvPosition.setText(userList.get(i).getPosition());
 
-        if(!userList.get(i).getThumbImage().isEmpty())
-        Glide.with(viewHolder.ivPhoto.getContext())
-                .load(userList.get(i).getThumbImage())
-                .into(viewHolder.ivPhoto);
+        if (!userList.get(i).getThumbImage().isEmpty())
+            Glide.with(viewHolder.ivPhoto.getContext())
+                    .load(userList.get(i).getThumbImage())
+                    .into(viewHolder.ivPhoto);
 
         viewHolder.itemView.setOnClickListener(v -> activity.onItemClicked(i));
 

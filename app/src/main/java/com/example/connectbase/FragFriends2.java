@@ -1,13 +1,16 @@
 package com.example.connectbase;
 
-
 import android.content.ContentValues;
 import android.content.Context;
+import android.content.Intent;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.graphics.BitmapFactory;
 import android.os.Bundle;
+import android.os.Environment;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.design.widget.BottomSheetDialog;
 import android.support.v4.app.Fragment;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -25,7 +28,11 @@ import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
+import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.StorageReference;
+import com.squareup.picasso.Picasso;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -35,10 +42,11 @@ public class FragFriends2 extends Fragment {
 
     RecyclerView friendList;
     DatabaseReference mFriendsReference, mUserReference;
+    StorageReference mThumbImagesReference;
     View view;
     ArrayList<String> friendsArrayList;
     ArrayList<DatabaseReference> referenceArrayList;
-    HashMap<String, Friend> friendHashMap;
+    HashMap<String, Users> friendHashMap;
     SQLiteDatabase userDatabase;
     String currentId;
     FriendsAdapter adapter;
@@ -92,7 +100,7 @@ public class FragFriends2 extends Fragment {
         public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
             Log.i("CBVEL", dataSnapshot.toString());
             String id = dataSnapshot.getKey();
-            Friend friend = dataSnapshot.getValue(Friend.class);
+            Users friend = dataSnapshot.getValue(Users.class);
             mFriendsReference.child(id).child("chatId").addListenerForSingleValueEvent(new ValueEventListener() {
                 @Override
                 public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
@@ -142,10 +150,12 @@ public class FragFriends2 extends Fragment {
         currentId = FirebaseAuth.getInstance().getUid();
         mFriendsReference = FirebaseDatabase.getInstance().getReference().child("Friends").child(currentId);
         mUserReference = FirebaseDatabase.getInstance().getReference().child("Users");
+        mThumbImagesReference = FirebaseStorage.getInstance().getReference().child("ProfileImage").child("ThumbImage");
         etSearch = view.findViewById(R.id.et_fragBookmark_search);
 
         friendList.setLayoutManager(new LinearLayoutManager(getActivity()));
         friendList.setAdapter(adapter);
+
         userDatabase = view.getContext().openOrCreateDatabase("users", Context.MODE_PRIVATE, null);
         userDatabase.execSQL("create table if not exists friends(" +
                 "id varchar primary key not null," +
@@ -165,12 +175,19 @@ public class FragFriends2 extends Fragment {
                 "state varchar," +
                 "thumbImage varchar)");
 
+        createFolders();
         loadFromDatabase();
 
 //        InputMethodManager methodManager= ((InputMethodManager) getActivity().getSystemService(Context.INPUT_METHOD_SERVICE));
         //      methodManager.hideSoftInputFromWindow(getActivity().getCurrentFocus().getWindowToken(),0,null);
 
 
+    }
+
+    private void createFolders() {
+        String path = Environment.getExternalStorageDirectory() + "/ConnectBase/ProfilePics/thumbImage";
+        File folder = new File(path);
+        folder.mkdirs();
     }
 
     private void loadFromDatabase() {
@@ -189,7 +206,7 @@ public class FragFriends2 extends Fragment {
             String position = cursor.getString(2);
             String thumbImage = cursor.getString(3);
 
-            Friend friend = new Friend();
+            Users friend = new Users();
             friend.setName(name);
             friend.setPosition(position);
             friend.setThumbImage(thumbImage);
@@ -203,7 +220,7 @@ public class FragFriends2 extends Fragment {
         cursor.close();
     }
 
-    private void addFriendToDatabase(String id, Friend friend, String chatId) {
+    private void addFriendToDatabase(String id, Users friend, String chatId) {
 
         ContentValues values = new ContentValues();
         values.put("age", friend.getAge());
@@ -242,8 +259,7 @@ public class FragFriends2 extends Fragment {
 
         int val = userDatabase.delete("friends", "id=?", new String[]{id});
         friendHashMap.remove(id);
-        int index = friendsArrayList.indexOf(id);
-        friendsArrayList.remove(index);
+        friendsArrayList.remove(id);
         adapter.notifyDataSetChanged();
         Log.i("CBDel", val + "");
 
@@ -327,8 +343,34 @@ public class FragFriends2 extends Fragment {
         @Override
         public void onBindViewHolder(@NonNull ViewHolder viewHolder, int i) {
 
-            Friend friend = friendHashMap.get(friendsArrayList.get(i));
+            Users friend = friendHashMap.get(friendsArrayList.get(i));
             viewHolder.tvName.setText(friend.getName());
+            viewHolder.tvPosition.setText(friend.getPosition());
+            boolean thumbImage = friend.getThumbImage().isEmpty();
+            if (!thumbImage) {
+                String path = Environment.getExternalStorageDirectory() + "/ConnectBase/ProfilePics/thumbImage/" + friendsArrayList.get(i) + ".jpg";
+                File thumbFile = new File(path);
+
+                if (thumbFile.exists()) {
+                    viewHolder.ivPic.setImageBitmap(BitmapFactory.decodeFile(path));
+
+                } else {
+                    mThumbImagesReference.child(friendsArrayList.get(i) + ".jpg").getFile(thumbFile).addOnCompleteListener(task -> {
+                        if (task.isSuccessful()) {
+                            viewHolder.ivPic.setImageBitmap(BitmapFactory.decodeFile(path));
+                        } else {
+                            Picasso.get()
+                                    .load(friend.getThumbImage())
+                                    .placeholder(R.drawable.avatar)
+                                    .error(R.drawable.avatar)
+                                    .into(viewHolder.ivPic);
+                        }
+                    });
+
+                }
+            } else viewHolder.ivPic.setImageResource(R.drawable.avatar);
+
+            viewHolder.layout.setOnClickListener(v -> showMenu(i, viewHolder.itemView.getContext()));
 
         }
 
@@ -341,22 +383,90 @@ public class FragFriends2 extends Fragment {
 
             TextView tvName, tvPosition;
             CircleImageView ivPic;
+            View layout;
 
             ViewHolder(@NonNull View itemView) {
                 super(itemView);
                 tvName = itemView.findViewById(R.id.tv_layoutRowPeople_name);
                 tvPosition = itemView.findViewById(R.id.tv_layoutRowPeople_position);
                 ivPic = itemView.findViewById(R.id.iv_layoutRowPeople_profilePic);
+                layout = itemView.findViewById(R.id.linlay_lRP);
             }
+
         }
 
     }
 
-    @Override
-    public void onPause() {
-        super.onPause();
-        checkFriends();
+    private void showMenu(int position, Context context) {
+        BottomSheetDialog dialog = new BottomSheetDialog(context);
+        dialog.setCancelable(true);
+        View view = getLayoutInflater().inflate(R.layout.layout_friend_bottomsheetdialog, null, false);
+
+        View sendMessage = view.findViewById(R.id.tv_lFBSD_sendMessage);
+        View viewProfile = view.findViewById(R.id.tv_lFBSD_viewProfile);
+
+        String id = friendsArrayList.get(position);
+        Users user = getFriendFromDatabase(id);
+
+        sendMessage.setOnClickListener(v -> {
+            openChatActivity(id, user, context);
+            dialog.dismiss();
+        });
+
+        viewProfile.setOnClickListener(v -> {
+            openUserProfile(id, user, context);
+            dialog.dismiss();
+        });
+
+
+        dialog.setContentView(view);
+        dialog.show();
     }
+
+    private Users getFriendFromDatabase(String id) {
+        Users user = new Users();
+
+        Cursor cursor = userDatabase.rawQuery("Select * from friends where id='" + id + "'", null, null);
+
+        if (cursor == null || cursor.getCount() == 0)
+            return null;
+        cursor.moveToFirst();
+
+        user.setAge(cursor.getString(2));
+        user.setCity(cursor.getString(3));
+        user.setEmail(cursor.getString(4));
+        user.setExperience(cursor.getString(5));
+        user.setImage(cursor.getString(6));
+        user.setMobile(cursor.getString(7));
+        user.setName(cursor.getString(8));
+        user.setOrganisation(cursor.getString(9));
+        user.setPosition(cursor.getString(10));
+        user.setQualification(cursor.getString(11));
+        user.setResume(cursor.getString(12));
+        user.setSkills(cursor.getString(13));
+        user.setState(cursor.getString(14));
+        user.setThumbImage(cursor.getString(15));
+
+        cursor.close();
+        return user;
+    }
+
+    private void openChatActivity(String id, Users user, Context context) {
+
+        Intent intent = new Intent(context, ChatActivity.class);
+        intent.putExtra("user", user);
+        intent.putExtra("id", id);
+        startActivity(intent);
+    }
+
+    private void openUserProfile(String id, Users user, Context context) {
+
+        Intent intent = new Intent(context, ViewUserProfile.class);
+        intent.putExtra("user", user);
+        intent.putExtra("id", id);
+        startActivity(intent);
+    }
+
 
     @Override
     public void onDestroy() {

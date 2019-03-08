@@ -8,8 +8,9 @@
     app:layout_behavior="@string/bottom_sheet_behavior"
     android:layout_height="match_parent">
 
-    <include layout="@layout/layout_toolbar"
-        android:id="@+id/toolbar_fragSheet"/>
+    <include
+        layout="@layout/layout_toolbar"
+        android:id="@+id/toolbar_fragSheet" />
 
     <com.like.LikeButton
         android:id="@+id/star_fragSheet_bookmark"
@@ -188,7 +189,7 @@
                 android:text="Loading Data..."
                 android:textSize="20sp"
                 android:textColor="@color/colorWhite"
-                android:background="@drawable/layout_circular_buttons"/>
+                android:background="@drawable/layout_circular_buttons" />
 
             <Button
                 android:layout_width="match_parent"
@@ -201,7 +202,7 @@
                 android:textSize="20sp"
                 android:visibility="gone"
                 android:textColor="@color/colorWhite"
-                android:background="@drawable/layout_circular_buttons"/>
+                android:background="@drawable/layout_circular_buttons" />
 
 
         </LinearLayout>

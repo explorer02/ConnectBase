@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context=".RegisterActivity">
 
-    <include layout="@layout/layout_toolbar"
-        android:id="@+id/toolbar_register"/>
+    <include
+        layout="@layout/layout_toolbar"
+        android:id="@+id/toolbar_register" />
 
     <android.support.design.widget.TextInputLayout
         android:id="@+id/til_reg_name"
@@ -90,8 +90,7 @@
         app:btn_radius="30"
         app:arrow_color="@color/colorWhite"
         app:text_color="@color/colorWhite"
-        android:layout_height="wrap_content"/>
-
+        android:layout_height="wrap_content" />
 
 
 </RelativeLayout>

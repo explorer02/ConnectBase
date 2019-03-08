@@ -13,7 +13,7 @@ public class ZoomImageViewActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_zoom_image_view);
-        ZoomageView zoomageView=findViewById(R.id.iv_zoomImage_profilePic);
+        ZoomageView zoomageView = findViewById(R.id.iv_zoomImage_profilePic);
         String imagePath = getIntent().getStringExtra("path");
         File imageFile = new File(imagePath);
         if (imageFile.exists())

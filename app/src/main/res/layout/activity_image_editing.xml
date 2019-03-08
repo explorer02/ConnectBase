@@ -36,33 +36,33 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-        android:orientation="horizontal">
+            android:orientation="horizontal">
 
-        <ImageView
-            android:layout_width="0dp"
-            android:layout_height="40dp"
-            android:layout_weight="1"
-            android:onClick="editingToolClick"
-            android:src="@drawable/ic_brush"
-            android:tag="brush" />
+            <ImageView
+                android:layout_width="0dp"
+                android:layout_height="40dp"
+                android:layout_weight="1"
+                android:onClick="editingToolClick"
+                android:src="@drawable/ic_brush"
+                android:tag="brush" />
 
-        <ImageView
-            android:id="@+id/iv_imageEdit_eraser"
-            android:layout_width="0dp"
-            android:layout_height="40dp"
-            android:layout_weight="1"
-            android:onClick="editingToolClick"
-            android:src="@drawable/ic_erase"
-            android:tag="eraser" />
+            <ImageView
+                android:id="@+id/iv_imageEdit_eraser"
+                android:layout_width="0dp"
+                android:layout_height="40dp"
+                android:layout_weight="1"
+                android:onClick="editingToolClick"
+                android:src="@drawable/ic_erase"
+                android:tag="eraser" />
 
-        <ImageView
-            android:id="@+id/iv_imageEdit_text_box"
-            android:layout_width="0dp"
-            android:layout_height="40dp"
-            android:layout_weight="1"
-            android:onClick="editingToolClick"
-            android:src="@drawable/ic_text_field"
-            android:tag="text" />
+            <ImageView
+                android:id="@+id/iv_imageEdit_text_box"
+                android:layout_width="0dp"
+                android:layout_height="40dp"
+                android:layout_weight="1"
+                android:onClick="editingToolClick"
+                android:src="@drawable/ic_text_field"
+                android:tag="text" />
 
             <ImageView
                 android:id="@+id/iv_imageEdit_rotleft"
@@ -81,39 +81,40 @@
                 android:onClick="editingToolClick"
                 android:src="@drawable/ic_rotate_right"
                 android:tag="rotright" />
-        <ImageView
-            android:id="@+id/iv_imageEdit_undo"
-            android:layout_width="0dp"
-            android:layout_height="40dp"
-            android:layout_weight="1"
-            android:onClick="editingToolClick"
-            android:src="@drawable/ic_undo"
-            android:tag="undo" />
 
-        <ImageView
-            android:id="@+id/iv_imageEdit_redo"
-            android:layout_width="0dp"
-            android:layout_height="40dp"
-            android:layout_weight="1"
-            android:onClick="editingToolClick"
-            android:src="@drawable/ic_redo"
-            android:tag="redo" />
+            <ImageView
+                android:id="@+id/iv_imageEdit_undo"
+                android:layout_width="0dp"
+                android:layout_height="40dp"
+                android:layout_weight="1"
+                android:onClick="editingToolClick"
+                android:src="@drawable/ic_undo"
+                android:tag="undo" />
 
-    </LinearLayout>
+            <ImageView
+                android:id="@+id/iv_imageEdit_redo"
+                android:layout_width="0dp"
+                android:layout_height="40dp"
+                android:layout_weight="1"
+                android:onClick="editingToolClick"
+                android:src="@drawable/ic_redo"
+                android:tag="redo" />
+
+        </LinearLayout>
 
 
-    <EditText
-        android:id="@+id/et_imageEdit_desc"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="40dp"
-        android:layout_marginTop="10dp"
-        android:hint="Add Description..."
-        android:inputType="textMultiLine"
-        android:paddingLeft="10dp"
-        android:paddingRight="10dp"
-        android:textColor="@color/colorWhite"
-        android:textColorHint="@color/colorWhite" />
+        <EditText
+            android:id="@+id/et_imageEdit_desc"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="40dp"
+            android:layout_marginTop="10dp"
+            android:hint="Add Description..."
+            android:inputType="textMultiLine"
+            android:paddingLeft="10dp"
+            android:paddingRight="10dp"
+            android:textColor="@color/colorWhite"
+            android:textColorHint="@color/colorWhite" />
 
     </LinearLayout>
 

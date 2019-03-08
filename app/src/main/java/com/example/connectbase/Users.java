@@ -3,7 +3,7 @@ package com.example.connectbase;
 import java.io.Serializable;
 
 public class Users implements Serializable {
-    private String name,position,thumbImage,skills,image,organisation,age,city,email,experience,state,resume,mobile,qualification;
+    private String name, position, thumbImage, skills, image, organisation, age, city, email, experience, state, resume, mobile, qualification;
 
     public Users(String name, String position, String thumbImage, String skills, String image, String organisation, String age, String city, String email, String experience, String state, String resume, String mobile, String qualification) {
         this.name = name;

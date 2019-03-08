@@ -22,7 +22,7 @@ import in.shadowfax.proswipebutton.ProSwipeButton;
 
 public class RegisterActivity extends AppCompatActivity {
 
-    TextInputLayout tilName,tilEmail,tilPass,tilConfPass;
+    TextInputLayout tilName, tilEmail, tilPass, tilConfPass;
     ProSwipeButton swipeRegister;
     FirebaseAuth mAuth;
     DatabaseReference mUserReference;
@@ -32,18 +32,17 @@ public class RegisterActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_register);
-        Toolbar toolbar=findViewById(R.id.toolbar_register);
+        Toolbar toolbar = findViewById(R.id.toolbar_register);
         setSupportActionBar(toolbar);
         getSupportActionBar().setTitle("Create a new Account");
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-        mAuth=FirebaseAuth.getInstance();
-        tilEmail=findViewById(R.id.til_reg_email);
-        tilConfPass=findViewById(R.id.til_reg_cpass);
-        tilPass=findViewById(R.id.til_reg_pass);
-        tilName=findViewById(R.id.til_reg_name);
-        swipeRegister=findViewById(R.id.swipe_reg_register);
+        mAuth = FirebaseAuth.getInstance();
+        tilEmail = findViewById(R.id.til_reg_email);
+        tilConfPass = findViewById(R.id.til_reg_cpass);
+        tilPass = findViewById(R.id.til_reg_pass);
+        tilName = findViewById(R.id.til_reg_name);
+        swipeRegister = findViewById(R.id.swipe_reg_register);
         swipeRegister.setOnSwipeListener(() -> createAccount());
-
 
 
     }
@@ -55,40 +54,40 @@ public class RegisterActivity extends AppCompatActivity {
         tilPass.setError(null);
         tilConfPass.setError(null);
 
-        String name=tilName.getEditText().getText().toString().trim();
-        String email=tilEmail.getEditText().getText().toString().trim();
-        String pass=tilPass.getEditText().getText().toString();
-        String cpass=tilConfPass.getEditText().getText().toString();
+        String name = tilName.getEditText().getText().toString().trim();
+        String email = tilEmail.getEditText().getText().toString().trim();
+        String pass = tilPass.getEditText().getText().toString();
+        String cpass = tilConfPass.getEditText().getText().toString();
 
-        boolean b1=!name.isEmpty();
-        boolean b2=!email.isEmpty();
-        boolean b3=email.contains("@")&&email.contains(".");
-        boolean b4=pass.length()>5;
-        boolean b5=cpass.equals(pass);
+        boolean b1 = !name.isEmpty();
+        boolean b2 = !email.isEmpty();
+        boolean b3 = email.contains("@") && email.contains(".");
+        boolean b4 = pass.length() > 5;
+        boolean b5 = cpass.equals(pass);
 
-        if(!b1)
+        if (!b1)
             tilName.setError("Name cannot be empty!!");
-        if(!b2)
+        if (!b2)
             tilEmail.setError("Email cannot be empty!!");
-        else if(!b3)
+        else if (!b3)
             tilEmail.setError("Invalid Email!!");
-        if(!b4)
+        if (!b4)
             tilPass.setError("Password length should be atleast 6 characters");
-        if(!b5)
+        if (!b5)
             tilConfPass.setError("Password should match with above entered password!!");
 
-        if(b1&&b2&&b3&&b4&&b5){
-            createUserOnFirebase(email,pass);
-        }
-        else setButton(false);
+        if (b1 && b2 && b3 && b4 && b5) {
+            createUserOnFirebase(email, pass);
+        } else setButton(false);
     }
-    void setButton(final boolean value){
+
+    void setButton(final boolean value) {
         new Handler().postDelayed(new Runnable() {
             @Override
             public void run() {
                 swipeRegister.showResultIcon(value);
             }
-        },100);
+        }, 100);
     }
 
     private void createUserOnFirebase(final String email, String pass) {

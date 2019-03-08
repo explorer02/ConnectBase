@@ -49,14 +49,14 @@ import id.zelory.compressor.Compressor;
 
 public class UpdateProfileActivity extends AppCompatActivity {
 
-    ArrayList<TextInputLayout>arrayLayout;
+    ArrayList<TextInputLayout> arrayLayout;
     Button btnUpdate;
     ProgressDialog dialog;
-    ImageView ivResume,ivUpload;
+    ImageView ivResume, ivUpload;
     String currentId;
     DatabaseReference mUserReference;
-    StorageReference mProfileImageReference,mResumeReference;
-    final int REQUEST_CODE_PICK_RESUME=101,REQUEST_CODE_STORAGE_READ=201,REQUEST_CODE_STORAGE_WRITE=202;
+    StorageReference mProfileImageReference, mResumeReference;
+    final int REQUEST_CODE_PICK_RESUME = 101, REQUEST_CODE_STORAGE_READ = 201, REQUEST_CODE_STORAGE_WRITE = 202;
     View relativeLayout;
     ImageView ivCamera;
     CircleImageView ivProfilePic;
@@ -68,13 +68,13 @@ public class UpdateProfileActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_update_profile);
 
-        Toolbar toolbar=findViewById(R.id.toolbar_updateProfile);
+        Toolbar toolbar = findViewById(R.id.toolbar_updateProfile);
         setSupportActionBar(toolbar);
         getSupportActionBar().setTitle("Update Profile");
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 
-        currentId=getIntent().getStringExtra("id");
-        arrayLayout=new ArrayList<>();
+        currentId = getIntent().getStringExtra("id");
+        arrayLayout = new ArrayList<>();
         arrayLayout.add(findViewById(R.id.til_updateProfile_name));
         arrayLayout.add(findViewById(R.id.til_updateProfile_age));
         arrayLayout.add(findViewById(R.id.til_updateProfile_qualification));
@@ -85,18 +85,18 @@ public class UpdateProfileActivity extends AppCompatActivity {
         arrayLayout.add(findViewById(R.id.til_updateProfile_experience));
         arrayLayout.add(findViewById(R.id.til_updateProfile_city));
         arrayLayout.add(findViewById(R.id.til_updateProfile_state));
-        btnUpdate=findViewById(R.id.btn_updateProfile_update);
+        btnUpdate = findViewById(R.id.btn_updateProfile_update);
 
         relativeLayout = findViewById(R.id.relativeLayout_update_profile);
 
-        ivCamera=findViewById(R.id.iv_updateProfile_camera);
-        ivProfilePic=findViewById(R.id.iv_updateProfile_profilePic);
-        ivResume=findViewById(R.id.iv_updateProfile_resume);
+        ivCamera = findViewById(R.id.iv_updateProfile_camera);
+        ivProfilePic = findViewById(R.id.iv_updateProfile_profilePic);
+        ivResume = findViewById(R.id.iv_updateProfile_resume);
         ivResume.setVisibility(View.GONE);
-        ivUpload=findViewById(R.id.iv_updateProfile_upload);
-        mUserReference=FirebaseDatabase.getInstance().getReference().child("Users");
-        mProfileImageReference=FirebaseStorage.getInstance().getReference().child("ProfileImage");
-        mResumeReference=FirebaseStorage.getInstance().getReference().child("Resume");
+        ivUpload = findViewById(R.id.iv_updateProfile_upload);
+        mUserReference = FirebaseDatabase.getInstance().getReference().child("Users");
+        mProfileImageReference = FirebaseStorage.getInstance().getReference().child("ProfileImage");
+        mResumeReference = FirebaseStorage.getInstance().getReference().child("Resume");
 
         this.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
         loadProfile();
@@ -137,23 +137,21 @@ public class UpdateProfileActivity extends AppCompatActivity {
             Log.i("ConnectBase", resumeFile.getPath() + "\t\t\t" + resumeFile.exists());
 
             if (resumeFile.exists()) {
-                        Intent intent = new Intent(Intent.ACTION_VIEW);
-                        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                Intent intent = new Intent(Intent.ACTION_VIEW);
+                intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
                 intent.setDataAndType(commonFunctions.getUriFromFile(getApplicationContext(), resumeFile), "application/pdf");
-                        startActivity(intent);
-                    }
-
-                else {
+                startActivity(intent);
+            } else {
                 Snackbar.make(relativeLayout, "File Not found on your device", Snackbar.LENGTH_SHORT).show();
-                    downloadResume();
-                    ivResume.setClickable(false);
-                }
+                downloadResume();
+                ivResume.setClickable(false);
+            }
         });
 
     }
 
-    private void showDialog(String message,int style){
-        dialog=new ProgressDialog(this);
+    private void showDialog(String message, int style) {
+        dialog = new ProgressDialog(this);
         dialog.setMessage(message);
         dialog.setCancelable(false);
         dialog.setProgressStyle(style);
@@ -162,7 +160,7 @@ public class UpdateProfileActivity extends AppCompatActivity {
 
     private void loadProfile() {
 
-        showDialog("Please wait while we are loading your profile",ProgressDialog.STYLE_SPINNER);
+        showDialog("Please wait while we are loading your profile", ProgressDialog.STYLE_SPINNER);
 
 
         mUserReference.child(currentId).addValueEventListener(new ValueEventListener() {
@@ -192,7 +190,7 @@ public class UpdateProfileActivity extends AppCompatActivity {
                 image = dataSnapshot.child("image").getValue().toString();
                 resume = dataSnapshot.child("resume").getValue().toString();
 
-                if(!resume.trim().isEmpty())
+                if (!resume.trim().isEmpty())
                     ivResume.setVisibility(View.VISIBLE);
                 else ivResume.setVisibility(View.GONE);
 
@@ -223,7 +221,7 @@ public class UpdateProfileActivity extends AppCompatActivity {
                     }
                 }
                 dialog.dismiss();
-                for (int i=0;i<arrayLayout.size();i++)
+                for (int i = 0; i < arrayLayout.size(); i++)
                     arrayLayout.get(i).clearFocus();
 
             }
@@ -243,32 +241,32 @@ public class UpdateProfileActivity extends AppCompatActivity {
     private void checkProfile() {
         arrayLayout.get(0).getEditText().setError(null);
         arrayLayout.get(3).getEditText().setError(null);
-        String name=arrayLayout.get(0).getEditText().getText().toString().trim();
-        boolean b1=!name.isEmpty();
-        if(!b1)
+        String name = arrayLayout.get(0).getEditText().getText().toString().trim();
+        boolean b1 = !name.isEmpty();
+        if (!b1)
             arrayLayout.get(0).getEditText().setError("Name cannot be empty!!");
-        String mobile=arrayLayout.get(3).getEditText().getText().toString().trim();
-        boolean b2=mobile.length()==0||mobile.length()==10;
-        if(!b2)
+        String mobile = arrayLayout.get(3).getEditText().getText().toString().trim();
+        boolean b2 = mobile.length() == 0 || mobile.length() == 10;
+        if (!b2)
             arrayLayout.get(3).getEditText().setError("Invalid Mobile Number!!");
-        if(b1&&b2){
+        if (b1 && b2) {
             updateProfile();
         }
     }
 
-    private void updateProfile(){
+    private void updateProfile() {
 
-        Map hashmap=new HashMap();
-        hashmap.put("name",arrayLayout.get(0).getEditText().getText().toString().trim());
-        hashmap.put("age",arrayLayout.get(1).getEditText().getText().toString().trim());
-        hashmap.put("qualification",arrayLayout.get(2).getEditText().getText().toString().trim());
-        hashmap.put("mobile",arrayLayout.get(3).getEditText().getText().toString().trim());
-        hashmap.put("organisation",arrayLayout.get(4).getEditText().getText().toString().trim());
-        hashmap.put("position",arrayLayout.get(5).getEditText().getText().toString().trim());
-        hashmap.put("skills",arrayLayout.get(6).getEditText().getText().toString().trim());
-        hashmap.put("experience",arrayLayout.get(7).getEditText().getText().toString().trim());
-        hashmap.put("city",arrayLayout.get(8).getEditText().getText().toString().trim());
-        hashmap.put("state",arrayLayout.get(9).getEditText().getText().toString().trim());
+        Map hashmap = new HashMap();
+        hashmap.put("name", arrayLayout.get(0).getEditText().getText().toString().trim());
+        hashmap.put("age", arrayLayout.get(1).getEditText().getText().toString().trim());
+        hashmap.put("qualification", arrayLayout.get(2).getEditText().getText().toString().trim());
+        hashmap.put("mobile", arrayLayout.get(3).getEditText().getText().toString().trim());
+        hashmap.put("organisation", arrayLayout.get(4).getEditText().getText().toString().trim());
+        hashmap.put("position", arrayLayout.get(5).getEditText().getText().toString().trim());
+        hashmap.put("skills", arrayLayout.get(6).getEditText().getText().toString().trim());
+        hashmap.put("experience", arrayLayout.get(7).getEditText().getText().toString().trim());
+        hashmap.put("city", arrayLayout.get(8).getEditText().getText().toString().trim());
+        hashmap.put("state", arrayLayout.get(9).getEditText().getText().toString().trim());
 
         mUserReference.child(currentId).updateChildren(hashmap).addOnCompleteListener(task -> {
             if (task.isSuccessful()) {
@@ -277,7 +275,6 @@ public class UpdateProfileActivity extends AppCompatActivity {
                 commonFunctions.showErrorDialog(this, task.getException().getMessage());
             }
         });
-
 
 
     }
@@ -376,12 +373,12 @@ public class UpdateProfileActivity extends AppCompatActivity {
         }
     }
 
-    void uploadResume(final Uri mainUri){
+    void uploadResume(final Uri mainUri) {
 
         Log.i("ConnectBase Uri", mainUri.toString());
         showDialog("Uploading Resume", ProgressDialog.STYLE_HORIZONTAL);
 
-        final StorageReference myResumeReference=mResumeReference.child(currentId+".pdf");
+        final StorageReference myResumeReference = mResumeReference.child(currentId + ".pdf");
 
         myResumeReference.putFile(mainUri).addOnCompleteListener(task -> {
             if (task.isSuccessful()) {
@@ -426,18 +423,16 @@ public class UpdateProfileActivity extends AppCompatActivity {
         }
     }
 
-    void downloadResume(){
-        if(ContextCompat.checkSelfPermission(this,Manifest.permission.WRITE_EXTERNAL_STORAGE)!=PackageManager.PERMISSION_GRANTED)
-        {
-            ActivityCompat.requestPermissions(this,new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},REQUEST_CODE_STORAGE_WRITE);
-        }
-        else {
+    void downloadResume() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, REQUEST_CODE_STORAGE_WRITE);
+        } else {
             Snackbar.make(relativeLayout, "Downloading File from Server", Snackbar.LENGTH_SHORT).show();
 
             File parentFile = new File(Environment.getExternalStorageDirectory() + "/ConnectBase/Resume/");
             parentFile.mkdirs();
             final File file = new File(parentFile, "resume.pdf");
-                showDialog("Downloading Resume", ProgressDialog.STYLE_HORIZONTAL);
+            showDialog("Downloading Resume", ProgressDialog.STYLE_HORIZONTAL);
             mResumeReference.child(currentId + ".pdf").getFile(file).addOnCompleteListener(task -> {
                 if (task.isSuccessful()) {
                     ivResume.setClickable(true);
@@ -452,7 +447,7 @@ public class UpdateProfileActivity extends AppCompatActivity {
             }).addOnProgressListener(taskSnapshot -> {
                 dialog.setMax((int) (taskSnapshot.getTotalByteCount() / 1024));
                 dialog.setProgress((int) (taskSnapshot.getBytesTransferred() / 1024));
-                });
+            });
 
         }
     }
@@ -461,9 +456,9 @@ public class UpdateProfileActivity extends AppCompatActivity {
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
 
-        switch (requestCode){
+        switch (requestCode) {
             case REQUEST_CODE_STORAGE_READ:
-                if(grantResults.length>0&&grantResults[0]==PackageManager.PERMISSION_GRANTED)
+                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED)
                     uploadResume(resumeUri);
                 else
 
@@ -472,7 +467,7 @@ public class UpdateProfileActivity extends AppCompatActivity {
                 break;
             case REQUEST_CODE_STORAGE_WRITE:
 
-                if(grantResults.length>0&&grantResults[0]==PackageManager.PERMISSION_GRANTED)
+                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED)
                     downloadResume();
                 else {
                     ivResume.setClickable(true);
