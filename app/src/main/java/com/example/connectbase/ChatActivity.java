@@ -88,7 +88,7 @@ public class ChatActivity extends AppCompatActivity {
 
     Users user;
     String id, currentId;
-    DatabaseReference mChatReference, mFriendReference;
+    DatabaseReference mChatReference, mFriendReference, mUserReference;
     final int REQUEST_CODE_GALLERY = 1031;
     EditText etMessage;
     String chatId = "";
@@ -127,6 +127,7 @@ public class ChatActivity extends AppCompatActivity {
 
         mFriendReference = FirebaseDatabase.getInstance().getReference().child("Friends");
         mChatReference = FirebaseDatabase.getInstance().getReference().child("Chats");
+        mUserReference = FirebaseDatabase.getInstance().getReference().child("Users");
         mChatImageReference = FirebaseStorage.getInstance().getReference().child("ChatImage");
         mChatFileReference = FirebaseStorage.getInstance().getReference().child("ChatFiles");
 
@@ -169,6 +170,28 @@ public class ChatActivity extends AppCompatActivity {
         new LoadChatsFromDatabase().execute();
 
         TextView tvName = view.findViewById(R.id.tv_lTCA_name);
+        TextView tvOnline = view.findViewById(R.id.tv_lTCA_online);
+        tvOnline.setSelected(true);
+
+        mUserReference.child(id).addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                if (dataSnapshot.hasChild("online")) {
+                    String online = dataSnapshot.child("online").getValue().toString();
+                    if (online.equals("true")) {
+                        tvOnline.setText("Online. Tap for more Info...");
+                    } else
+                        tvOnline.setText(commonFunctions.getlastOnline(Long.parseLong(online)) + " . Tap for more Info...");
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+
+            }
+        });
+
+
         tvName.setText(user.getName());
         CircleImageView ivProfilePic = view.findViewById(R.id.iv_lTCA_ivProfilePic);
         if (!user.getThumbImage().isEmpty()) {
@@ -1141,14 +1164,7 @@ public class ChatActivity extends AppCompatActivity {
                                     viewHolderImage.progressBar.setProgress(progress);
                                 });
 
-                            }
-
-                            /*if (uploadStarted.get(msgId) != null && uploadStarted.get(msgId)) {
-                                viewHolderImage.ivSeen.setVisibility(View.GONE);
-                                return;
-                            }
-*/
-                            else {
+                            } else {
                                 ApplicationClass.uploadTaskHashMap.get(msgId).addOnProgressListener(taskSnapshot -> {
                                     int progress = (int) (taskSnapshot.getBytesTransferred() * 1.0 / taskSnapshot.getTotalByteCount()) * 100;
                                     viewHolderImage.progressBar.setProgress(progress);

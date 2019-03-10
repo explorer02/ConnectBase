@@ -14,6 +14,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.database.FirebaseDatabase;
 
 public class MainActivity extends AppCompatActivity implements FragInviteRequest.CallBacks {
 
@@ -51,10 +52,9 @@ public class MainActivity extends AppCompatActivity implements FragInviteRequest
         } else {
             currentId = mAuth.getUid();
             askPermissions();
+            FirebaseDatabase.getInstance().getReference().child("Users").child(currentId).child("online").setValue("true");
         }
-
     }
-
 
     private void askPermissions() {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {

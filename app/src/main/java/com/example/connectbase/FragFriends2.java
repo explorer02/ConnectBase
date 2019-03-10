@@ -19,6 +19,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.google.firebase.auth.FirebaseAuth;
@@ -47,6 +48,7 @@ public class FragFriends2 extends Fragment {
     ArrayList<String> friendsArrayList;
     ArrayList<DatabaseReference> referenceArrayList;
     HashMap<String, Users> friendHashMap;
+    HashMap<String, Boolean> isOnline;
     SQLiteDatabase userDatabase;
     String currentId;
     FriendsAdapter adapter;
@@ -101,11 +103,14 @@ public class FragFriends2 extends Fragment {
             Log.i("CBVEL", dataSnapshot.toString());
             String id = dataSnapshot.getKey();
             Users friend = dataSnapshot.getValue(Users.class);
-            mFriendsReference.child(id).child("chatId").addListenerForSingleValueEvent(new ValueEventListener() {
+
+            isOnline.put(id, dataSnapshot.hasChild("online") && dataSnapshot.child("online").getValue().toString().equals("true"));
+            mFriendsReference.child(id).addListenerForSingleValueEvent(new ValueEventListener() {
                 @Override
-                public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                    if (dataSnapshot.hasChild("chatId")) {
-                        String chatId = dataSnapshot.child("chatId").toString();
+                public void onDataChange(@NonNull DataSnapshot dataSnapshot1) {
+
+                    if (dataSnapshot1.hasChild("chatId")) {
+                        String chatId = dataSnapshot1.child("chatId").getValue().toString();
                         addFriendToDatabase(id, friend, chatId);
                     } else addFriendToDatabase(id, friend, "");
                 }
@@ -114,7 +119,9 @@ public class FragFriends2 extends Fragment {
                 public void onCancelled(@NonNull DatabaseError databaseError) {
 
                 }
+
             });
+
 
         }
 
@@ -145,6 +152,7 @@ public class FragFriends2 extends Fragment {
         friendList = view.findViewById(R.id.list_fragBookmark);
         friendsArrayList = new ArrayList<>();
         friendHashMap = new HashMap<>();
+        isOnline = new HashMap<>();
         referenceArrayList = new ArrayList<>();
         adapter = new FriendsAdapter();
         currentId = FirebaseAuth.getInstance().getUid();
@@ -178,9 +186,6 @@ public class FragFriends2 extends Fragment {
         createFolders();
         loadFromDatabase();
 
-//        InputMethodManager methodManager= ((InputMethodManager) getActivity().getSystemService(Context.INPUT_METHOD_SERVICE));
-        //      methodManager.hideSoftInputFromWindow(getActivity().getCurrentFocus().getWindowToken(),0,null);
-
 
     }
 
@@ -194,6 +199,7 @@ public class FragFriends2 extends Fragment {
         friendsArrayList.clear();
         referenceArrayList.clear();
         friendHashMap.clear();
+        isOnline.clear();
 
         Cursor cursor = userDatabase.rawQuery("Select id,name,position,thumbImage from friends", null, null);
 
@@ -346,6 +352,13 @@ public class FragFriends2 extends Fragment {
             Users friend = friendHashMap.get(friendsArrayList.get(i));
             viewHolder.tvName.setText(friend.getName());
             viewHolder.tvPosition.setText(friend.getPosition());
+
+            if (isOnline.containsKey(friendsArrayList.get(i))) {
+                if (isOnline.get(friendsArrayList.get(i)))
+                    viewHolder.ivSeen.setVisibility(View.VISIBLE);
+            } else {
+                viewHolder.ivSeen.setVisibility(View.INVISIBLE);
+            }
             boolean thumbImage = friend.getThumbImage().isEmpty();
             if (!thumbImage) {
                 String path = Environment.getExternalStorageDirectory() + "/ConnectBase/ProfilePics/thumbImage/" + friendsArrayList.get(i) + ".jpg";
@@ -384,6 +397,7 @@ public class FragFriends2 extends Fragment {
             TextView tvName, tvPosition;
             CircleImageView ivPic;
             View layout;
+            ImageView ivSeen;
 
             ViewHolder(@NonNull View itemView) {
                 super(itemView);
@@ -391,6 +405,7 @@ public class FragFriends2 extends Fragment {
                 tvPosition = itemView.findViewById(R.id.tv_layoutRowPeople_position);
                 ivPic = itemView.findViewById(R.id.iv_layoutRowPeople_profilePic);
                 layout = itemView.findViewById(R.id.linlay_lRP);
+                ivSeen = itemView.findViewById(R.id.iv_lRP_online);
             }
 
         }
@@ -466,7 +481,6 @@ public class FragFriends2 extends Fragment {
         intent.putExtra("id", id);
         startActivity(intent);
     }
-
 
     @Override
     public void onDestroy() {

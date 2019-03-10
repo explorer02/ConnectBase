@@ -21,6 +21,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.Date;
 
 import id.zelory.compressor.Compressor;
 
@@ -32,8 +33,6 @@ class CommonFunctions {
 
     CommonFunctions() {
         mProfilePicsReference = FirebaseStorage.getInstance().getReference().child("ProfileImage");
-
-
     }
 
     void downloadProfilePic(Context context, String userId, ImageView imageView, String imageUrl) {
@@ -130,6 +129,7 @@ class CommonFunctions {
 
         Calendar calendar = Calendar.getInstance();
         calendar.setTimeInMillis(milliSec);
+
         /*calendar.add(Calendar.HOUR,5);
         calendar.add(Calendar.MINUTE,30);
 */
@@ -141,4 +141,34 @@ class CommonFunctions {
         return dateFormat.format(calendar.getTime());
     }
 
+    String getlastOnline(long time) {
+        String last = "";
+        long currTime = new Date().getTime();
+        long diff = currTime - time;
+        diff /= 60000;
+
+        if (diff < 5) {
+            return "Last Online: A few minutes ago";
+        }
+        //   SimpleDateFormat dateFormat = new SimpleDateFormat("dd-MMM-yy hh:mm a");
+        Calendar calendar1 = Calendar.getInstance();
+        Calendar calendar2 = Calendar.getInstance();
+        calendar1.setTimeInMillis(time);
+        calendar2.setTimeInMillis(currTime);
+
+        if (calendar2.get(Calendar.YEAR) == calendar1.get(Calendar.YEAR)) {
+            if (calendar2.get(Calendar.MONTH) == calendar1.get(Calendar.MONTH)) {
+                if (calendar2.get(Calendar.DAY_OF_MONTH) == calendar1.get(Calendar.DAY_OF_MONTH)) {
+                    if (calendar2.get(Calendar.HOUR) == calendar1.get(Calendar.HOUR)) {
+                        return "Last Online: " + (calendar2.get(Calendar.MINUTE) - (calendar1.get(Calendar.MINUTE))) + " minutes ago";
+                    } else
+                        return "Last Online: " + (calendar2.get(Calendar.HOUR) - (calendar1.get(Calendar.HOUR))) + " days ago";
+                } else
+                    return "Last Online: " + (calendar2.get(Calendar.DAY_OF_MONTH) - (calendar1.get(Calendar.DAY_OF_MONTH))) + " days ago";
+
+            } else
+                return "Last Online: " + (calendar2.get(Calendar.MONTH) - (calendar1.get(Calendar.MONTH))) + " months ago";
+        } else return "Last Online: Forever ago";
+
+    }
 }

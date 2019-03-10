@@ -5,7 +5,10 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.os.Build;
 
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ServerValue;
 import com.google.firebase.storage.FileDownloadTask;
 import com.google.firebase.storage.UploadTask;
 
@@ -16,6 +19,8 @@ public class ApplicationClass extends Application {
 
     public static final String NOTIFICATION_CHANNEL__UPLOAD = "channel_upload";
     public static final String NOTIFICATION_CHANNEL__DOWNLOAD = "channel_download";
+    FirebaseAuth mAuth;
+    DatabaseReference mUserReference;
     static HashMap<String, UploadTask> uploadTaskHashMap;
     static HashMap<String, FileDownloadTask> downloadTaskHashMap;
 
@@ -26,6 +31,17 @@ public class ApplicationClass extends Application {
         FirebaseDatabase.getInstance().setPersistenceEnabled(true);
         uploadTaskHashMap = new HashMap<>();
         downloadTaskHashMap = new HashMap<>();
+
+        mAuth = FirebaseAuth.getInstance();
+        mUserReference = FirebaseDatabase.getInstance().getReference().child("Users");
+        if (mAuth.getCurrentUser() != null) {
+            String uid = mAuth.getUid();
+            mUserReference.child(uid).child("online").setValue("true");
+            mUserReference.child(uid).child("online").onDisconnect().setValue(ServerValue.TIMESTAMP);
+
+        }
+
+
     }
 
     private void createNotificationChannels() {
