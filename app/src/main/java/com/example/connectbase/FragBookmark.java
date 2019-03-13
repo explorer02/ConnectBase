@@ -1,89 +1,257 @@
 package com.example.connectbase;
 
 import android.app.AlertDialog;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
+import android.graphics.BitmapFactory;
 import android.os.Bundle;
+import android.os.Environment;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.text.Editable;
-import android.text.InputType;
 import android.text.TextWatcher;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.TextView;
-import android.widget.Toast;
 
-import com.firebase.ui.database.FirebaseRecyclerAdapter;
-import com.firebase.ui.database.FirebaseRecyclerOptions;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.database.ChildEventListener;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
+import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.StorageReference;
 import com.like.LikeButton;
 import com.like.OnLikeListener;
 import com.squareup.picasso.Picasso;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 
 import de.hdodenhof.circleimageview.CircleImageView;
 
-
 public class FragBookmark extends Fragment {
 
+    View view;
+    RecyclerView bookmarkList;
     EditText etSearch;
     DatabaseReference mBookmarkReference, mUserReference;
-    FirebaseRecyclerOptions bookmarkOptions;
-    RecyclerView bookmarkList;
+    ArrayList<String> bookmarkArrayList;
+    HashMap<String, Users> bookmarkHashMap;
+    SQLiteDatabase userDatabase;
     String currentId;
-    View view;
-    FirebaseRecyclerAdapter<UserId, FragBookmark.ViewHolder> adapter;
-    HashMap<String, Users> usersHashMap = new HashMap<>();
-    ArrayList<String> arrayId = new ArrayList<>();
+    StorageReference mThumbImagesReference;
+    BookmarkAdapter adapter;
+    ArrayList<DatabaseReference> referenceArrayList;
+
+    ChildEventListener childEventListener = new ChildEventListener() {
+        @Override
+        public void onChildAdded(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {
+
+            String id = dataSnapshot.getKey();
+            mUserReference.child(id).addValueEventListener(valueEventListener);
+        }
+
+        @Override
+        public void onChildChanged(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {
+
+        }
+
+        @Override
+        public void onChildRemoved(@NonNull DataSnapshot dataSnapshot) {
+
+            String id = dataSnapshot.getKey();
+            Log.i("ConnectBase", "Bookmark deleted");
+            int index1 = bookmarkArrayList.indexOf(id);
+            int index2 = referenceArrayList.indexOf(mUserReference.child(id));
+
+            if (index1 >= 0) {
+                deleteBookmark(id);
+            }
+            if (index2 >= 0) {
+                referenceArrayList.get(index2).removeEventListener(valueEventListener);
+                referenceArrayList.remove(index2);
+            }
+
+        }
+
+        @Override
+        public void onChildMoved(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {
+
+        }
+
+        @Override
+        public void onCancelled(@NonNull DatabaseError databaseError) {
+
+        }
+    };
+
+    ValueEventListener valueEventListener = new ValueEventListener() {
+        @Override
+        public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+
+            String id = dataSnapshot.getKey();
+            Users bookmark = dataSnapshot.getValue(Users.class);
+            addBookmarkToDatabase(id, bookmark);
+
+        }
+
+        @Override
+        public void onCancelled(@NonNull DatabaseError databaseError) {
+
+        }
+    };
+
+    private void addBookmarkToDatabase(String id, Users bookmark) {
+
+        ContentValues values = new ContentValues();
+        values.put("age", bookmark.getAge());
+        values.put("id", id);
+        values.put("city", bookmark.getCity());
+        values.put("email", bookmark.getEmail());
+        values.put("experience", bookmark.getExperience());
+        values.put("image", bookmark.getImage());
+        values.put("mobile", bookmark.getMobile());
+        values.put("name", bookmark.getName());
+        values.put("organisation", bookmark.getOrganisation());
+        values.put("position", bookmark.getPosition());
+        values.put("qualification", bookmark.getQualification());
+        values.put("resume", bookmark.getResume());
+        values.put("skills", bookmark.getSkills());
+        values.put("state", bookmark.getState());
+        values.put("thumbImage", bookmark.getThumbImage());
+
+        long num = userDatabase.insert("bookmarks", null, values);
+
+        bookmarkHashMap.put(id, bookmark);
+
+        if (num < 0) {
+            updateBookmark(id, values);
+            adapter.notifyItemChanged(bookmarkArrayList.indexOf(id));
+        } else {
+            bookmarkArrayList.add(id);
+            adapter.notifyItemInserted(bookmarkArrayList.size() - 1);
+        }
 
 
-    public FragBookmark() {
-        // Required empty public constructor
     }
 
+    private void deleteBookmark(String id) {
+
+        userDatabase.delete("bookmarks", "id=?", new String[]{id});
+        bookmarkHashMap.remove(id);
+        bookmarkArrayList.remove(id);
+        adapter.notifyDataSetChanged();
+
+    }
+
+    private void updateBookmark(String id, ContentValues values) {
+
+        userDatabase.update("bookmarks", values, "id=?", new String[]{id});
+
+    }
+
+
+    @Nullable
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
-        // Inflate the layout for this fragment
+    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         view = inflater.inflate(R.layout.fragment_bookmark, container, false);
         initialiseVariables();
         return view;
-
     }
 
-    void initialiseVariables() {
-        mBookmarkReference = FirebaseDatabase.getInstance().getReference().child("Bookmark");
-        currentId = FirebaseAuth.getInstance().getUid();
-        mUserReference = FirebaseDatabase.getInstance().getReference().child("Users");
+    private void initialiseVariables() {
+
         bookmarkList = view.findViewById(R.id.list_fragBookmark);
-        LinearLayoutManager manager = new LinearLayoutManager(view.getContext());
-        bookmarkList.setLayoutManager(manager);
-        bookmarkOptions = new FirebaseRecyclerOptions.Builder<UserId>()
-                .setQuery(mBookmarkReference.child(currentId).orderByChild("time"), UserId.class)
-                .build();
         etSearch = view.findViewById(R.id.et_fragBookmark_search);
-        etSearch.setInputType(InputType.TYPE_NULL);
+        currentId = FirebaseAuth.getInstance().getUid();
+        mBookmarkReference = FirebaseDatabase.getInstance().getReference().child("Bookmark").child(currentId);
+        mUserReference = FirebaseDatabase.getInstance().getReference().child("Users");
+        mThumbImagesReference = FirebaseStorage.getInstance().getReference().child("ProfileImage").child("ThumbImage");
+        bookmarkArrayList = new ArrayList<>();
+        referenceArrayList = new ArrayList<>();
+        bookmarkHashMap = new HashMap<>();
+        userDatabase = view.getContext().openOrCreateDatabase("users", Context.MODE_PRIVATE, null);
+        adapter = new BookmarkAdapter();
+
+        userDatabase.execSQL("create table if not exists bookmarks(" +
+                "id varchar primary key not null," +
+                "age varchar," +
+                "city varchar," +
+                "email varchar not null," +
+                "experience text," +
+                "image varchar," +
+                "mobile varchar," +
+                "name varchar not null," +
+                "organisation varchar," +
+                "position varchar," +
+                "qualification varchar," +
+                "resume varchar," +
+                "skills varchar," +
+                "state varchar," +
+                "thumbImage varchar)");
+
+        createFolders();
+        loadFromDatabase();
+
+        bookmarkList.setLayoutManager(new LinearLayoutManager(getActivity()));
+        bookmarkList.setAdapter(adapter);
+
+        Log.i("CalledOn", "OnCreateView");
 
 
     }
+
+    private void createFolders() {
+        String path = Environment.getExternalStorageDirectory() + "/ConnectBase/ProfilePics/thumbImage";
+        File folder = new File(path);
+        folder.mkdirs();
+    }
+
+    private void loadFromDatabase() {
+        bookmarkArrayList.clear();
+        bookmarkHashMap.clear();
+
+        Cursor cursor = userDatabase.rawQuery("Select id,name,position,thumbImage from bookmarks", null, null);
+
+        if (cursor.getCount() == 0)
+            return;
+        cursor.moveToFirst();
+        do {
+            String id = cursor.getString(0);
+            String name = cursor.getString(1);
+            String position = cursor.getString(2);
+            String thumbImage = cursor.getString(3);
+
+            Users friend = new Users();
+            friend.setName(name);
+            friend.setPosition(position);
+            friend.setThumbImage(thumbImage);
+
+            bookmarkArrayList.add(id);
+            bookmarkHashMap.put(id, friend);
+        }
+        while (cursor.moveToNext());
+        cursor.close();
+    }
+
 
     @Override
     public void onActivityCreated(@Nullable Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
-
+        mBookmarkReference.addChildEventListener(childEventListener);
         etSearch.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {
@@ -97,131 +265,158 @@ public class FragBookmark extends Fragment {
 
             @Override
             public void afterTextChanged(Editable s) {
-
-                if (!s.toString().trim().isEmpty())
-                    loadIndices(s.toString());
-
+                findAndScroll(s.toString());
             }
         });
-
-        adapter = new FirebaseRecyclerAdapter<UserId, ViewHolder>(bookmarkOptions) {
-            @Override
-            protected void onBindViewHolder(@NonNull ViewHolder holder, int position, @NonNull UserId model) {
-
-                String id = getRef(position).getKey();
-                arrayId.add(position, id);
-
-                mUserReference.child(id).addValueEventListener(new ValueEventListener() {
-                    @Override
-                    public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-
-                        holder.star.setLiked(true);
-                        holder.tvName.setText(dataSnapshot.child("name").getValue().toString());
-                        holder.tvPosition.setText(dataSnapshot.child("position").getValue().toString());
-                        String image = dataSnapshot.child("image").getValue().toString();
-
-                        Users user = dataSnapshot.getValue(Users.class);
-                        usersHashMap.put(id, user);
-                        etSearch.setInputType(InputType.TYPE_TEXT_FLAG_CAP_WORDS);
-                        if (!image.isEmpty())
-                            Picasso.get()
-                                    .load(image)
-                                    .placeholder(R.drawable.avatar)
-                                    .into(holder.ivPic);
-                    }
-
-                    @Override
-                    public void onCancelled(@NonNull DatabaseError databaseError) {
-
-                    }
-                });
-                mUserReference.keepSynced(true);
-                holder.star.setOnLikeListener(new OnLikeListener() {
-                    @Override
-                    public void liked(LikeButton likeButton) {
-
-                    }
-
-                    @Override
-                    public void unLiked(LikeButton likeButton) {
-                        showUnBookmarkDialog(id, holder.star);
-                    }
-                });
-
-                holder.itemView.setOnClickListener(v -> openUserProfile(id, holder.itemView.getContext()));
-
-            }
-
-            @NonNull
-            @Override
-            public ViewHolder onCreateViewHolder(@NonNull ViewGroup viewGroup, int i) {
-
-                View view = LayoutInflater.from(viewGroup.getContext()).inflate(R.layout.layout_row_bookmark, viewGroup, false);
-
-                return new ViewHolder(view);
-            }
-        };
-        mBookmarkReference.keepSynced(true);
-        bookmarkList.setAdapter(adapter);
-        adapter.startListening();
-
-
     }
 
 
-    private void loadIndices(String text) {
+    void findAndScroll(String s) {
 
-        for (int i = 0; i < arrayId.size(); i++) {
-
-            if (usersHashMap.get(arrayId.get(i)).getName().toLowerCase().contains(text.toLowerCase())) {
-
+        if (s.equals(""))
+            return;
+        for (int i = 0; i < bookmarkArrayList.size(); i++) {
+            if (bookmarkHashMap.get(bookmarkArrayList.get(i)).getName().toLowerCase().contains(s.toLowerCase())) {
                 bookmarkList.smoothScrollToPosition(i);
                 break;
             }
         }
     }
 
-    private void showUnBookmarkDialog(String id, final View star) {
+
+    public class BookmarkAdapter extends RecyclerView.Adapter<BookmarkAdapter.ViewHolder> {
+        @NonNull
+        @Override
+        public ViewHolder onCreateViewHolder(@NonNull ViewGroup viewGroup, int i) {
+
+            View rowView = LayoutInflater.from(viewGroup.getContext()).inflate(R.layout.layout_row_people, viewGroup, false);
+            return new ViewHolder(rowView);
+        }
+
+        @Override
+        public void onBindViewHolder(@NonNull ViewHolder viewHolder, int i) {
+
+            Users bookmark = bookmarkHashMap.get(bookmarkArrayList.get(i));
+            viewHolder.tvName.setText(bookmark.getName());
+            viewHolder.tvPosition.setText(bookmark.getPosition());
+            viewHolder.star.setLiked(true);
+
+            boolean thumbImage = bookmark.getThumbImage().isEmpty();
+            if (!thumbImage) {
+                String path = Environment.getExternalStorageDirectory() + "/ConnectBase/ProfilePics/thumbImage/" + bookmarkArrayList.get(i) + ".jpg";
+                File thumbFile = new File(path);
+
+                if (thumbFile.exists()) {
+                    viewHolder.ivPic.setImageBitmap(BitmapFactory.decodeFile(path));
+
+                } else {
+                    mThumbImagesReference.child(bookmarkArrayList.get(i) + ".jpg").getFile(thumbFile).addOnCompleteListener(task -> {
+                        if (task.isSuccessful()) {
+                            viewHolder.ivPic.setImageBitmap(BitmapFactory.decodeFile(path));
+                        } else {
+                            Picasso.get()
+                                    .load(bookmark.getThumbImage())
+                                    .placeholder(R.drawable.avatar)
+                                    .error(R.drawable.avatar)
+                                    .into(viewHolder.ivPic);
+                        }
+                    });
+
+                }
+            } else viewHolder.ivPic.setImageResource(R.drawable.avatar);
+
+            viewHolder.layout.setOnClickListener(v -> openProfile(i, viewHolder.itemView.getContext()));
+
+            viewHolder.star.setOnLikeListener(new OnLikeListener() {
+                @Override
+                public void liked(LikeButton likeButton) {
+
+                }
+
+                @Override
+                public void unLiked(LikeButton likeButton) {
+                    new AlertDialog.Builder(view.getContext())
+                            .setTitle("Remove From Bookmark!!")
+                            .setMessage("Are you sure you want to remove " + bookmark.getName() + " from bookmarks??")
+                            .setPositiveButton("Yes", (dialog, which) -> mBookmarkReference.child(bookmarkArrayList.get(i)).removeValue())
+                            .setNegativeButton("No", (dialog, which) -> viewHolder.star.setLiked(true))
+                            .show();
+                }
+            });
 
 
-        AlertDialog.Builder dialog = new AlertDialog.Builder(view.getContext());
-        dialog.setTitle("Remove from Bookmarks")
-                .setMessage("Are you sure you want to remove " + usersHashMap.get(id).getName() + " from Bookmarks??")
-                .setNegativeButton("Cancel", (dialog12, which) -> ((LikeButton) star).setLiked(true))
+        }
 
-                .setPositiveButton("Ok", (dialog1, which) -> mBookmarkReference.child(currentId).child(id).removeValue().addOnCompleteListener(task -> {
-                    if (!task.isComplete()) {
-                        Toast.makeText(view.getContext(), task.getException().getMessage(), Toast.LENGTH_SHORT).show();
-                    }
-                }));
+        @Override
+        public int getItemCount() {
+            return bookmarkArrayList.size();
+        }
 
-        dialog.setCancelable(false)
-                .show();
+        class ViewHolder extends RecyclerView.ViewHolder {
 
-    }
+            TextView tvName, tvPosition;
+            CircleImageView ivPic;
+            View layout;
+            LikeButton star;
 
-    public class ViewHolder extends RecyclerView.ViewHolder {
-
-        TextView tvName, tvPosition;
-        CircleImageView ivPic;
-        LikeButton star;
-
-        public ViewHolder(@NonNull View itemView) {
-            super(itemView);
-            tvName = itemView.findViewById(R.id.tv_layoutRowBookmark_name);
-            tvPosition = itemView.findViewById(R.id.tv_layoutRowBookmark_position);
-            ivPic = itemView.findViewById(R.id.iv_layoutRowBookmark_profilePic);
-            star = itemView.findViewById(R.id.star_layoutRowBookmark_like);
+            ViewHolder(@NonNull View itemView) {
+                super(itemView);
+                tvName = itemView.findViewById(R.id.tv_layoutRowPeople_name);
+                tvPosition = itemView.findViewById(R.id.tv_layoutRowPeople_position);
+                ivPic = itemView.findViewById(R.id.iv_layoutRowPeople_profilePic);
+                layout = itemView.findViewById(R.id.linlay_lRP);
+                star = itemView.findViewById(R.id.star_lRP_like);
+                star.setVisibility(View.VISIBLE);
+                star.setLiked(true);
+            }
         }
     }
 
-    private void openUserProfile(String id, Context context) {
+    private void openProfile(int i, Context context) {
+        String id = bookmarkArrayList.get(i);
 
+        Users bookmark = getBookmarkFromDatabase(id);
         Intent intent = new Intent(context, ViewUserProfile.class);
-        intent.putExtra("user", usersHashMap.get(id));
+        intent.putExtra("user", bookmark);
         intent.putExtra("id", id);
         startActivity(intent);
-
     }
 
+    private Users getBookmarkFromDatabase(String id) {
+        Users user = new Users();
+
+        Cursor cursor = userDatabase.rawQuery("Select * from bookmarks where id='" + id + "'", null, null);
+
+        if (cursor == null || cursor.getCount() == 0)
+            return null;
+        cursor.moveToFirst();
+
+        user.setAge(cursor.getString(1));
+        user.setCity(cursor.getString(2));
+        user.setEmail(cursor.getString(3));
+        user.setExperience(cursor.getString(4));
+        user.setImage(cursor.getString(5));
+        user.setMobile(cursor.getString(6));
+        user.setName(cursor.getString(7));
+        user.setOrganisation(cursor.getString(8));
+        user.setPosition(cursor.getString(9));
+        user.setQualification(cursor.getString(10));
+        user.setResume(cursor.getString(11));
+        user.setSkills(cursor.getString(12));
+        user.setState(cursor.getString(13));
+        user.setThumbImage(cursor.getString(14));
+
+        cursor.close();
+        return user;
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        mBookmarkReference.removeEventListener(childEventListener);
+        for (int i = 0; i < referenceArrayList.size(); i++) {
+            referenceArrayList.get(i).removeEventListener(valueEventListener);
+        }
+
+    }
 }

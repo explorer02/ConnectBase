@@ -38,7 +38,7 @@ public class ViewPagerAdapterMain extends FragmentPagerAdapter {
             case 1:
                 return new FragChat();
             case 2:
-                return new FragFriends2();
+                return new FragFriends();
             case 3:
                 return new FragBookmark();
             default:

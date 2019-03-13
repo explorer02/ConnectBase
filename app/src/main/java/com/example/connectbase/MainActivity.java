@@ -43,6 +43,7 @@ public class MainActivity extends AppCompatActivity implements FragInviteRequest
 
     }
 
+
     @Override
     protected void onStart() {
         super.onStart();
@@ -88,6 +89,7 @@ public class MainActivity extends AppCompatActivity implements FragInviteRequest
     private void logout() {
         mAuth.signOut();
         finish();
+        //TODO: delete database
         startActivity(new Intent(this, StartActivity.class));
     }
 

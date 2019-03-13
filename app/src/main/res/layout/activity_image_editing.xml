@@ -18,13 +18,13 @@
         android:textColor="@color/colorWhite"
         android:textSize="20sp" />
 
+
     <ja.burhanrashid52.photoeditor.PhotoEditorView
         android:id="@+id/photoEditor_ImageEditing"
         android:layout_width="match_parent"
         android:layout_height="534dp"
         android:layout_marginTop="50dp"
         app:photo_src="@color/colorPrimary" />
-
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -107,8 +107,8 @@
             android:id="@+id/et_imageEdit_desc"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="40dp"
             android:layout_marginTop="10dp"
+            android:layout_marginBottom="40dp"
             android:hint="Add Description..."
             android:inputType="textMultiLine"
             android:paddingLeft="10dp"
