@@ -11,6 +11,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
+import android.database.sqlite.SQLiteConstraintException;
 import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
@@ -211,6 +212,15 @@ public class ChatActivity extends AppCompatActivity {
 
     }
 
+    private void addUserTableToDatabase() {
+        chatDatabase.execSQL("create table if not exists user_list('user_id' varchar not null primary key)");
+        try {
+            chatDatabase.execSQL("insert into user_list values('" + id + "')");
+        } catch (SQLiteConstraintException e) {
+            e.printStackTrace();
+        }
+    }
+
     public void addAttachment(View view) {
 
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_DENIED) {
@@ -219,7 +229,8 @@ public class ChatActivity extends AppCompatActivity {
         }
 
         InputMethodManager manager = (InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
-        manager.hideSoftInputFromWindow(getCurrentFocus().getWindowToken(), 0, null);
+        if (getCurrentFocus() != null && getCurrentFocus().getWindowToken() != null)
+            manager.hideSoftInputFromWindow(getCurrentFocus().getWindowToken(), 0, null);
 
         BottomSheetDialog dialog = new BottomSheetDialog(this);
         View dialogView = getLayoutInflater().inflate(R.layout.layout_add_attachment, null, false);
@@ -910,6 +921,7 @@ public class ChatActivity extends AppCompatActivity {
         super.onDestroy();
         if (chatQuery != null && chatListener != null)
             chatQuery.removeEventListener(chatListener);
+        addUserTableToDatabase();
         finish();
 
     }
@@ -928,7 +940,6 @@ public class ChatActivity extends AppCompatActivity {
     protected void onStart() {
         super.onStart();
         new Handler().postDelayed(this::loadOnlineMessages, 1000);
-
     }
 
     private String getLastSeenMessage() {

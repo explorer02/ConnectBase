@@ -1,34 +1,35 @@
-<LinearLayout android:orientation="vertical"
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    xmlns:android="http://schemas.android.com/apk/res/android">
+    android:orientation="vertical">
 
-    <LinearLayout xmlns:app="http://schemas.android.com/apk/res-auto"
+    <LinearLayout
+        android:id="@+id/linlay_lRCFr"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_margin="5dp"
-        android:elevation="7dp">
+        android:elevation="7dp"
+        android:orientation="horizontal">
 
         <de.hdodenhof.circleimageview.CircleImageView
-            android:id="@+id/iv_layoutRowBookmark_profilePic"
+            android:id="@+id/iv_lRCFr_profilePic"
             android:layout_width="0dp"
             android:layout_height="70dp"
             android:layout_marginLeft="5dp"
             android:layout_marginRight="5dp"
-            android:layout_weight="2"
+            android:layout_weight="4"
             android:src="@drawable/avatar" />
-
 
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_marginStart="5dp"
-            android:layout_marginEnd="10dp"
-            android:layout_weight="7"
+            android:layout_weight="14"
             android:orientation="vertical">
 
             <TextView
-                android:id="@+id/tv_layoutRowBookmark_name"
+                android:id="@+id/tv_lRCFr_name"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="Name"
@@ -36,23 +37,28 @@
                 android:textSize="18sp" />
 
             <TextView
-                android:id="@+id/tv_layoutRowBookmark_position"
+                android:id="@+id/tv_lRCFr__position"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="5dp"
-                android:text="Position"
+                android:text="Last Message"
+                android:maxLines="1"
                 android:textSize="15sp" />
         </LinearLayout>
 
-        <com.like.LikeButton
-            android:id="@+id/star_layoutRowBookmark_like"
-            android:layout_width="45dp"
-            android:layout_height="45dp"
-            android:layout_marginTop="6dp"
-            android:layout_marginEnd="15dp"
+        <Button
+            android:id="@+id/btn_lRCFr_messageCount"
+            android:layout_width="27dp"
+            android:layout_gravity="center"
+            android:background="@drawable/layout_circle_button_white"
+            android:backgroundTint="@color/colorPrimary"
+            android:textColor="@color/colorWhite"
+            android:text="12"
+            android:layout_height="27dp"
+            android:layout_marginStart="-50dp"
+            android:layout_marginEnd="5dp"
             android:layout_weight="0"
-            app:icon_size="40dp"
-            app:icon_type="Star" />
+            android:visibility="invisible" />
 
     </LinearLayout>
 
