@@ -3,6 +3,7 @@ package com.example.connectbase;
 import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.support.design.widget.TabLayout;
 import android.support.v4.app.ActivityCompat;
@@ -40,9 +41,14 @@ public class MainActivity extends AppCompatActivity implements FragInviteRequest
         viewPager.setCurrentItem(1, true);
         tabLayout = findViewById(R.id.tablayout_main);
         tabLayout.setupWithViewPager(viewPager);
+        createDatabase();
 
     }
 
+    private void createDatabase() {
+        SQLiteDatabase chatDatabase = openOrCreateDatabase("chats", MODE_PRIVATE, null);
+        chatDatabase.execSQL("create table if not exists user_list('user_id' varchar not null primary key)");
+    }
 
     @Override
     protected void onStart() {

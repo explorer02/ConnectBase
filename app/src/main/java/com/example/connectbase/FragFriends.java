@@ -269,6 +269,8 @@ public class FragFriends extends Fragment {
         adapter.notifyDataSetChanged();
         Log.i("CBDel", val + "");
 
+        //TODO: delete shared preferences while removing friends
+
     }
 
     private void addVEL(String id, boolean database) {

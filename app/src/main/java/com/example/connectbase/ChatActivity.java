@@ -114,7 +114,6 @@ public class ChatActivity extends AppCompatActivity {
     ImageView ivSend;
     SharedPreferences sharedPreferences;
     Query chatQuery;
-    HashMap<String, Boolean> uploadStarted = new HashMap<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -172,6 +171,7 @@ public class ChatActivity extends AppCompatActivity {
 
         TextView tvName = view.findViewById(R.id.tv_lTCA_name);
         TextView tvOnline = view.findViewById(R.id.tv_lTCA_online);
+        CircleImageView ivProfilePic = view.findViewById(R.id.iv_lTCA_ivProfilePic);
         tvOnline.setSelected(true);
 
         mUserReference.child(id).addValueEventListener(new ValueEventListener() {
@@ -184,6 +184,14 @@ public class ChatActivity extends AppCompatActivity {
                     } else
                         tvOnline.setText(commonFunctions.getlastOnline(Long.parseLong(online)) + " . Tap for more Info...");
                 }
+                user = dataSnapshot.getValue(Users.class);
+                tvName.setText(user.getName());
+                if (!user.getThumbImage().isEmpty()) {
+                    Picasso.get()
+                            .load(user.getThumbImage())
+                            .placeholder(R.drawable.avatar)
+                            .into(ivProfilePic);
+                }
             }
 
             @Override
@@ -192,9 +200,11 @@ public class ChatActivity extends AppCompatActivity {
             }
         });
 
+        mUserReference.child(id).keepSynced(true);
+
 
         tvName.setText(user.getName());
-        CircleImageView ivProfilePic = view.findViewById(R.id.iv_lTCA_ivProfilePic);
+
         if (!user.getThumbImage().isEmpty()) {
             Picasso.get()
                     .load(user.getThumbImage())
@@ -1144,7 +1154,6 @@ public class ChatActivity extends AppCompatActivity {
 
                             if (ApplicationClass.uploadTaskHashMap.get(msgId) == null) {
 
-                                //uploadStarted.put(msgId, true);
 
                                 File thumbFile = commonFunctions.compressImage(ChatActivity.this, imageFile, "/ConnectBase/temp/thumbImage", 180, 180, 10);
 
@@ -1318,10 +1327,6 @@ public class ChatActivity extends AppCompatActivity {
 
                         if (chatFile.getFileUrl().isEmpty()) {
                             viewHolderFile.ivSeen.setVisibility(View.GONE);
-
-                            /*if (uploadStarted.get(msgId) != null && uploadStarted.get(msgId))
-                                return;
-                            uploadStarted.put(msgId, true);*/
 
                             if (!ApplicationClass.uploadTaskHashMap.containsKey(msgId)) {
 
