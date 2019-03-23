@@ -56,7 +56,6 @@ public class FragFriends extends Fragment {
     FriendsAdapter adapter;
     EditText etSearch;
 
-
     ChildEventListener childEventListener = new ChildEventListener() {
         @Override
         public void onChildAdded(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {
@@ -268,6 +267,11 @@ public class FragFriends extends Fragment {
         friendsArrayList.remove(id);
         adapter.notifyDataSetChanged();
         Log.i("CBDel", val + "");
+        FragChat.sharedPreferences.edit()
+                .remove("user_" + id + "_chat_id")
+                .remove("user_" + id + "_message_id")
+                .apply();
+
 
         //TODO: delete shared preferences while removing friends
 

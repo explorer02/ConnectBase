@@ -5,6 +5,7 @@ import android.content.ContentValues;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.Cursor;
+import android.database.sqlite.SQLiteConstraintException;
 import android.database.sqlite.SQLiteDatabase;
 import android.graphics.BitmapFactory;
 import android.os.AsyncTask;
@@ -54,7 +55,7 @@ public class FragChat extends Fragment {
     static HashMap<String, UserHolder> chatHashMap;
     ArrayList<Query> referenceArrayList;
     String currentId;
-    SharedPreferences sharedPreferences;
+    static SharedPreferences sharedPreferences;
     StorageReference mThumbImagesReference;
 
     public FragChat() {
@@ -223,34 +224,38 @@ public class FragChat extends Fragment {
     private String getLastMessage(String id) {
 
         String lastMessage = "";
-        Cursor cursor = chatDatabase.rawQuery("select * from user_" + id, null, null);
+        try {
+            Cursor cursor = chatDatabase.rawQuery("select * from user_" + id, null, null);
 
-        if (cursor != null && cursor.getCount() > 0) {
-            cursor.moveToLast();
-            String messageId = cursor.getString(0);
-            Log.i("CBLis messageId", messageId);
-            String type = cursor.getString(1);
-            Cursor cursor1 = null;
-            switch (type) {
-                case "text":
-                    cursor1 = chatDatabase.rawQuery("select message from message_text where message_id='" + messageId + "'", null, null);
-                    cursor1.moveToFirst();
-                    lastMessage = cursor1.getString(0);
-                    break;
-                case "image":
-                    cursor1 = chatDatabase.rawQuery("select description from message_image where message_id='" + messageId + "'", null, null);
-                    cursor1.moveToFirst();
-                    lastMessage = "(Image) " + cursor1.getString(0);
-                    break;
-                case "file":
-                    cursor1 = chatDatabase.rawQuery("select description from message_file where message_id='" + messageId + "'", null, null);
-                    cursor1.moveToFirst();
-                    lastMessage = "(File) " + cursor1.getString(0);
-                    break;
+            if (cursor != null && cursor.getCount() > 0) {
+                cursor.moveToLast();
+                String messageId = cursor.getString(0);
+                Log.i("CBLis messageId", messageId);
+                String type = cursor.getString(1);
+                Cursor cursor1 = null;
+                switch (type) {
+                    case "text":
+                        cursor1 = chatDatabase.rawQuery("select message from message_text where message_id='" + messageId + "'", null, null);
+                        cursor1.moveToFirst();
+                        lastMessage = cursor1.getString(0);
+                        break;
+                    case "image":
+                        cursor1 = chatDatabase.rawQuery("select description from message_image where message_id='" + messageId + "'", null, null);
+                        cursor1.moveToFirst();
+                        lastMessage = "(Image) " + cursor1.getString(0);
+                        break;
+                    case "file":
+                        cursor1 = chatDatabase.rawQuery("select description from message_file where message_id='" + messageId + "'", null, null);
+                        cursor1.moveToFirst();
+                        lastMessage = "(File) " + cursor1.getString(0);
+                        break;
+                }
+                if (cursor1 != null)
+                    cursor1.close();
+                cursor.close();
             }
-            if (cursor1 != null)
-                cursor1.close();
-            cursor.close();
+        } catch (Exception e) {
+            e.printStackTrace();
         }
         return lastMessage;
 
@@ -260,26 +265,30 @@ public class FragChat extends Fragment {
 
         int count = 0;
 
-        Cursor cursor = chatDatabase.rawQuery("select message_id,message_type from user_" + id + " where sent='-1'", null, null);
+        try {
+            Cursor cursor = chatDatabase.rawQuery("select message_id,message_type from user_" + id + " where sent='-1'", null, null);
 
-        if (cursor == null || cursor.getCount() == 0)
-            return count;
-        cursor.moveToLast();
-        do {
-            String type = cursor.getString(1);
-            String messageId = cursor.getString(0);
-            Cursor cursor1 = chatDatabase.rawQuery("select seen from message_" + type + " where message_id='" + messageId + "'", null, null);
-            cursor1.moveToFirst();
-            String seen = cursor1.getString(0);
-            if (seen.equals("true"))
+            if (cursor == null || cursor.getCount() == 0)
                 return count;
-            count++;
-            cursor1.close();
-        }
-        while (cursor.moveToPrevious());
-        cursor.close();
+            cursor.moveToLast();
+            do {
+                String type = cursor.getString(1);
+                String messageId = cursor.getString(0);
+                Cursor cursor1 = chatDatabase.rawQuery("select seen from message_" + type + " where message_id='" + messageId + "'", null, null);
+                cursor1.moveToFirst();
+                String seen = cursor1.getString(0);
+                if (seen.equals("true"))
+                    return count;
+                count++;
+                cursor1.close();
+            }
+            while (cursor.moveToPrevious());
+            cursor.close();
 
-        Log.i("CBLis count", count + "");
+            Log.i("CBLis count", count + "");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         return count;
 
     }
@@ -442,7 +451,27 @@ public class FragChat extends Fragment {
         public void onChildAdded(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {
 
             if (dataSnapshot.hasChild("messageType")) {
+                String msgId = dataSnapshot.getKey();
                 String sender = dataSnapshot.child("sender").getValue().toString();
+
+                if (sender.equals(currentId))
+                    return;
+
+                String lastMessageId = sharedPreferences.getString("user" + sender + "message_id", "");
+                if (lastMessageId.equals(msgId)) {
+                    return;
+                }
+
+                addUserToDatabase(sender);
+
+                if (!chatArrayList.contains(sender)) {
+                    chatArrayList.add(0, sender);
+                    Users user = getFriendFromDatabase(sender);
+                    if (user != null)
+                        chatHashMap.put(sender, new UserHolder(user.getName(), null, user.getThumbImage(), -1));
+                    else chatArrayList.remove(0);
+                }
+
                 String type = dataSnapshot.child("messageType").getValue().toString();
                 Log.i("CBLis", dataSnapshot.getKey());
                 Object object = null;
@@ -457,8 +486,9 @@ public class FragChat extends Fragment {
                         object = dataSnapshot.getValue(ChatFile.class);
                         break;
                 }
-                addMessageToDatabase(sender, type, dataSnapshot.getKey(), object);
+                addMessageToDatabase(sender, type, msgId, object);
                 adapter.notifyDataSetChanged();
+
             }
 
 
@@ -532,6 +562,9 @@ public class FragChat extends Fragment {
             }
 
             messageMetaData.put("message_type", type);
+
+            createTables(sender);
+
             long v1 = chatDatabase.insert("user_" + sender, null, messageMetaData);
             long v2 = chatDatabase.insert("message_" + type, null, values);
             adapter.notifyDataSetChanged();
@@ -543,6 +576,17 @@ public class FragChat extends Fragment {
         }
     }
 
+    void createTables(String id) {
+
+        chatDatabase.execSQL("create table if not exists user_" + id + "('message_id' varchar not null primary key,'message_type' varchar not null,sent int)");
+
+        chatDatabase.execSQL("CREATE TABLE if not exists message_text('message_id' varchar NOT NULL ,'message' varchar NOT NULL,'sender' varchar NOT NULL,'time' varchar NOT NULL,'seen' varchar NOT NULL,PRIMARY KEY ('message_id'))");
+
+        chatDatabase.execSQL("CREATE TABLE if not exists 'message_image' ('message_id' VARCHAR NOT NULL,'sender' VARCHAR NOT NULL,'description' VARCHAR NOT NULL,'imageName' VARCHAR NOT NULL,'imageUrl' VARCHAR NOT NULL,'thumbImage' VARCHAR NOT NULL,'time' varchar NOT NULL,'seen' VARCHAR NOT NULL,PRIMARY KEY ('message_id'))");
+
+        chatDatabase.execSQL("CREATE TABLE if not exists 'message_file' ('message_id' VARCHAR NOT NULL,'sender' VARCHAR NOT NULL,'description' VARCHAR NOT NULL,'fileName' VARCHAR NOT NULL,'fileUrl' VARCHAR NOT NULL,'size' VARCHAR NOT NULL,'time' varchar NOT NULL,'seen' VARCHAR NOT NULL,PRIMARY KEY ('message_id'))");
+
+    }
     @Override
     public void onStop() {
         super.onStop();
@@ -553,5 +597,15 @@ public class FragChat extends Fragment {
         }
 
     }
+
+    private void addUserToDatabase(String id) {
+
+        try {
+            chatDatabase.execSQL("insert into user_list values('" + id + "')");
+        } catch (SQLiteConstraintException e) {
+            e.printStackTrace();
+        }
+    }
+
 
 }

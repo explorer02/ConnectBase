@@ -95,7 +95,8 @@ public class MainActivity extends AppCompatActivity implements FragInviteRequest
     private void logout() {
         mAuth.signOut();
         finish();
-        //TODO: delete database
+        deleteDatabase("chats");
+        deleteDatabase("users");
         startActivity(new Intent(this, StartActivity.class));
     }
 

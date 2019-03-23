@@ -142,7 +142,13 @@ public class ChatActivity extends AppCompatActivity {
         user = (Users) getIntent().getSerializableExtra("user");
         id = getIntent().getStringExtra("id");
         currentId = FirebaseAuth.getInstance().getUid();
-        generateChatId();
+        sharedPreferences = getSharedPreferences("chatData", MODE_PRIVATE);
+        if (checkFriends(id))
+            generateChatId();
+        else {
+            etMessage.setHint("You can no longer reply to this conversation");
+            etMessage.setEnabled(false);
+        }
 
         chatList = findViewById(R.id.list_chat);
         LinearLayoutManager layoutManager = new LinearLayoutManager(this);
@@ -220,6 +226,23 @@ public class ChatActivity extends AppCompatActivity {
                 sendMessage(message);
         });
 
+    }
+
+    private boolean checkFriends(String id) {
+
+        try {
+            SQLiteDatabase userDatabase = openOrCreateDatabase("users", MODE_PRIVATE, null);
+            Cursor cursor = userDatabase.rawQuery("Select * from friends where id='" + id + "'", null, null);
+
+            if (cursor.getCount() == 0)
+                return false;
+
+            cursor.close();
+            return true;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return false;
     }
 
     private void addUserTableToDatabase() {
@@ -638,7 +661,6 @@ public class ChatActivity extends AppCompatActivity {
 
     void generateChatId() {
 
-        sharedPreferences = getSharedPreferences("chatData", MODE_PRIVATE);
         String cid = sharedPreferences.getString("user_" + id + "_chat_id", "");
 
         if (!cid.isEmpty()) {
