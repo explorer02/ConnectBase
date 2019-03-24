@@ -56,7 +56,7 @@ public class FragChat extends Fragment {
     ArrayList<Query> referenceArrayList;
     String currentId;
     static SharedPreferences sharedPreferences;
-    StorageReference mThumbImagesReference;
+    StorageReference mThumbImagesReference, mChatImageReference;
 
     public FragChat() {
         // Required empty public constructor
@@ -80,6 +80,7 @@ public class FragChat extends Fragment {
         mChatReference = FirebaseDatabase.getInstance().getReference().child("Chats");
         mFriendReference = FirebaseDatabase.getInstance().getReference().child("Friends").child(currentId);
         mThumbImagesReference = FirebaseStorage.getInstance().getReference().child("ProfileImage").child("ThumbImage");
+        mChatImageReference = FirebaseStorage.getInstance().getReference().child("ChatImage");
 
         chatList = view.findViewById(R.id.list_fragBookmark);
         etSearch = view.findViewById(R.id.et_fragBookmark_search);
@@ -464,14 +465,6 @@ public class FragChat extends Fragment {
 
                 addUserToDatabase(sender);
 
-                if (!chatArrayList.contains(sender)) {
-                    chatArrayList.add(0, sender);
-                    Users user = getFriendFromDatabase(sender);
-                    if (user != null)
-                        chatHashMap.put(sender, new UserHolder(user.getName(), null, user.getThumbImage(), -1));
-                    else chatArrayList.remove(0);
-                }
-
                 String type = dataSnapshot.child("messageType").getValue().toString();
                 Log.i("CBLis", dataSnapshot.getKey());
                 Object object = null;
@@ -481,21 +474,58 @@ public class FragChat extends Fragment {
                         break;
                     case "image":
                         object = dataSnapshot.getValue(ChatImage.class);
+                        if (((ChatImage) object).getImageUrl().isEmpty())
+                            return;
                         break;
                     case "file":
                         object = dataSnapshot.getValue(ChatFile.class);
+                        if (((ChatFile) object).getFileUrl().isEmpty())
+                            return;
                         break;
                 }
                 addMessageToDatabase(sender, type, msgId, object);
+
+                if (!chatArrayList.contains(sender)) {
+                    chatArrayList.add(0, sender);
+                    Users user = getFriendFromDatabase(sender);
+                    if (user != null)
+                        chatHashMap.put(sender, new UserHolder(user.getName(), null, user.getThumbImage(), -1));
+                    else chatArrayList.remove(0);
+                }
                 adapter.notifyDataSetChanged();
 
             }
-
 
         }
 
         @Override
         public void onChildChanged(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {
+
+            String sender = dataSnapshot.child("sender").getValue().toString();
+            if (sender.equals(currentId))
+                return;
+
+            //TODO download thumbimage before adding to database;
+
+            String msgId = dataSnapshot.getKey();
+            if (dataSnapshot.hasChild("messageType")) {
+                String type = dataSnapshot.child("messageType").getValue().toString();
+
+                switch (type) {
+                    case "image":
+                        ChatImage chatImage = dataSnapshot.getValue(ChatImage.class);
+                        if (chatImage != null && !chatImage.getImageUrl().isEmpty() && !chatImage.getThumbImage().isEmpty())
+                            addMessageToDatabase(sender, type, msgId, chatImage);
+                        break;
+                    case "file":
+                        ChatFile chatFile = dataSnapshot.getValue(ChatFile.class);
+                        if (chatFile != null && !chatFile.getFileUrl().isEmpty())
+                            addMessageToDatabase(sender, type, msgId, chatFile);
+                        break;
+                }
+                adapter.notifyDataSetChanged();
+            }
+
 
         }
 
@@ -565,11 +595,8 @@ public class FragChat extends Fragment {
 
             createTables(sender);
 
-            long v1 = chatDatabase.insert("user_" + sender, null, messageMetaData);
-            long v2 = chatDatabase.insert("message_" + type, null, values);
-            adapter.notifyDataSetChanged();
-
-            Log.i("CBLis Database", v1 + "\t\t" + v2);
+            chatDatabase.insert("user_" + sender, null, messageMetaData);
+            chatDatabase.insert("message_" + type, null, values);
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -587,6 +614,7 @@ public class FragChat extends Fragment {
         chatDatabase.execSQL("CREATE TABLE if not exists 'message_file' ('message_id' VARCHAR NOT NULL,'sender' VARCHAR NOT NULL,'description' VARCHAR NOT NULL,'fileName' VARCHAR NOT NULL,'fileUrl' VARCHAR NOT NULL,'size' VARCHAR NOT NULL,'time' varchar NOT NULL,'seen' VARCHAR NOT NULL,PRIMARY KEY ('message_id'))");
 
     }
+
     @Override
     public void onStop() {
         super.onStop();
