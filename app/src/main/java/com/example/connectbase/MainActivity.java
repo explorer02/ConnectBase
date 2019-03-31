@@ -2,6 +2,7 @@ package com.example.connectbase;
 
 import android.Manifest;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
@@ -97,6 +98,8 @@ public class MainActivity extends AppCompatActivity implements FragInviteRequest
         finish();
         deleteDatabase("chats");
         deleteDatabase("users");
+        SharedPreferences sharedPreferences = getSharedPreferences("chatData", MODE_PRIVATE);
+        sharedPreferences.edit().clear().apply();
         startActivity(new Intent(this, StartActivity.class));
     }
 

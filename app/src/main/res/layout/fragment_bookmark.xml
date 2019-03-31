@@ -25,4 +25,12 @@
         android:layout_below="@+id/et_fragBookmark_search"
         android:layout_marginTop="10dp" />
 
+    <include
+        layout="@layout/layout_bottom_toolbar_list_selection"
+        android:layout_width="match_parent"
+        android:layout_height="?actionBarSize"
+        android:visibility="gone"
+        android:layout_alignParentBottom="true"
+        android:id="@+id/toolbar_bottom_fragBookmark" />
+
 </RelativeLayout>

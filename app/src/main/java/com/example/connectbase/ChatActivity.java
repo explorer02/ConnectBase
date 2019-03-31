@@ -363,9 +363,6 @@ public class ChatActivity extends AppCompatActivity {
                             for (int i = 0; i < Math.min(20, uriList.size()); i++)
                                 list.add(createFileFromUri(uriList.get(i), "image").getPath());
                             bundle.putStringArrayList("pathList", list);
-                            if (uriList.size() > 20) {
-                                Snackbar.make(chatList, "Loading first 20 images..", Snackbar.LENGTH_SHORT).show();
-                            }
 
                             Intent intent = new Intent(this, ViewImagesActivity.class);
 
@@ -731,9 +728,7 @@ public class ChatActivity extends AppCompatActivity {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         switch (requestCode) {
             case REQUEST_CODE_STORAGE:
-                if (grantResults.length == 2 && grantResults[0] == PackageManager.PERMISSION_GRANTED && grantResults[1] == PackageManager.PERMISSION_GRANTED) {
-
-                } else {
+                if (grantResults.length != 2 || grantResults[0] != PackageManager.PERMISSION_GRANTED || grantResults[1] != PackageManager.PERMISSION_GRANTED) {
                     String message = "Reading and writing External Storage is required for Sending attachments";
                     commonFunctions.showErrorDialog(this, message);
                 }
@@ -1022,7 +1017,7 @@ public class ChatActivity extends AppCompatActivity {
             int max = cursor.getCount();
             dialog.setMax(max);
 
-            String lastSeen = getLastSeenMessage();
+            String lastSeen = chatArray.size() > 0 ? chatArray.get(chatArray.size() - 1).id : null;
             if (lastSeen != null)
                 updateSharedPreference(lastSeen);
 
@@ -1179,26 +1174,22 @@ public class ChatActivity extends AppCompatActivity {
 
                                 File thumbFile = commonFunctions.compressImage(ChatActivity.this, imageFile, "/ConnectBase/temp/thumbImage", 180, 180, 10);
 
-                                StorageReference imageReference = mChatImageReference.child(chatId).child(msgId + ".jpg");
-                                StorageReference thumbImageReference = mChatImageReference.child(chatId).child("ThumbImage").child(msgId + ".jpg");
+                                StorageReference imageReference = mChatImageReference.child(currentId + chatId + msgId + ".jpg");
+                                StorageReference thumbImageReference = mChatImageReference.child("ThumbImage").child(currentId + chatId + msgId + ".jpg");
                                 Uri thumbImageUri = commonFunctions.getUriFromFile(getApplicationContext(), thumbFile);
 
                                 HashMap<String, Object> hashMap = new HashMap<>();
                                 thumbImageReference.putFile(thumbImageUri).addOnSuccessListener(taskSnapshot -> {
-                                    thumbImageReference.getDownloadUrl().addOnSuccessListener(uri -> {
-                                        hashMap.put("thumbImage", uri.toString());
+                                    hashMap.put("thumbImage", currentId + chatId + msgId + ".jpg");
                                         mChatReference.child(chatId).child(msgId).updateChildren(hashMap);
-                                    });
                                 });
                                 UploadTask uploadTask = imageReference.putFile(imageUri);
                                 ApplicationClass.uploadTaskHashMap.put(msgId, uploadTask);
 
                                 uploadTask.addOnSuccessListener(taskSnapshot -> {
-                                    imageReference.getDownloadUrl().addOnSuccessListener(uri -> {
-                                        hashMap.put("imageUrl", uri.toString());
+                                    hashMap.put("imageUrl", currentId + chatId + msgId + ".jpg");
                                         mChatReference.child(chatId).child(msgId).updateChildren(hashMap);
                                         ApplicationClass.uploadTaskHashMap.remove(msgId);
-                                    });
                                 });
 
                                 uploadTask.addOnProgressListener(taskSnapshot -> {
@@ -1268,7 +1259,7 @@ public class ChatActivity extends AppCompatActivity {
 
                             viewHolderImage.ivDownload.setOnClickListener(v -> {
 
-                                FileDownloadTask downloadTask = mChatImageReference.child(chatId).child(msgId + ".jpg").getFile(imageFile);
+                                FileDownloadTask downloadTask = mChatImageReference.child(chatImage.imageUrl).getFile(imageFile);
                                 viewHolderImage.ivDownload.setVisibility(View.GONE);
 
                                 downloadTask.addOnSuccessListener(taskSnapshot -> {
@@ -1354,7 +1345,7 @@ public class ChatActivity extends AppCompatActivity {
 
                                 File file = new File(Environment.getExternalStorageDirectory() + "/ConnectBase/Media/Files/sent/" + chatFile.getFileName());
 
-                                UploadTask uploadTask = mChatFileReference.child(chatId).child(msgId).putFile(commonFunctions.getUriFromFile(getApplicationContext(), file));
+                                UploadTask uploadTask = mChatFileReference.child(currentId + chatId + msgId).putFile(commonFunctions.getUriFromFile(getApplicationContext(), file));
                                 ApplicationClass.uploadTaskHashMap.put(msgId, uploadTask);
 
                                 uploadTask.addOnProgressListener(taskSnapshot -> {
@@ -1364,13 +1355,11 @@ public class ChatActivity extends AppCompatActivity {
 
                                 uploadTask.addOnSuccessListener(taskSnapshot -> {
                                     HashMap<String, Object> hashMap = new HashMap<>();
-                                    mChatFileReference.child(chatId).child(msgId).getDownloadUrl().addOnSuccessListener(uri -> {
-                                        hashMap.put("fileUrl", uri.toString());
+                                    hashMap.put("fileUrl", currentId + chatId + msgId);
                                         mChatReference.child(chatId).child(msgId).updateChildren(hashMap);
                                         notifyItemChanged(i);
                                         ApplicationClass.uploadTaskHashMap.remove(msgId);
                                     });
-                                });
 
                             } else {
                                 ApplicationClass.uploadTaskHashMap.get(msgId).addOnProgressListener(taskSnapshot -> {
@@ -1416,7 +1405,7 @@ public class ChatActivity extends AppCompatActivity {
                             viewHolderFile.ivDownload.setOnClickListener(v -> {
 
                                 if (!ApplicationClass.downloadTaskHashMap.containsKey(msgId)) {
-                                    FileDownloadTask downloadTask = mChatFileReference.child(chatId).child(msgId).getFile(file);
+                                    FileDownloadTask downloadTask = mChatFileReference.child(chatFile.getFileUrl()).getFile(file);
                                     viewHolderFile.ivDownload.setImageResource(R.drawable.ic_pause);
 
                                     ApplicationClass.downloadTaskHashMap.put(msgId, downloadTask);
@@ -1793,7 +1782,7 @@ public class ChatActivity extends AppCompatActivity {
                             parentFile.mkdirs();
                             File thumbFile = new File(parentFile, key + ".jpg");
 
-                            mChatImageReference.child(chatId).child("ThumbImage").child(key + ".jpg").getFile(thumbFile).addOnSuccessListener(taskSnapshot -> {
+                            mChatImageReference.child("ThumbImage").child(thumbImage).getFile(thumbFile).addOnSuccessListener(taskSnapshot -> {
                                 ChatImage chatImage = dataSnapshot.getValue(ChatImage.class);
                                 addMessageToDatabase(key, chatImage, -1);
                             });

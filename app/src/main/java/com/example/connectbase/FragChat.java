@@ -1,6 +1,7 @@
 package com.example.connectbase;
 
 import android.annotation.SuppressLint;
+import android.app.ProgressDialog;
 import android.content.ContentValues;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -16,8 +17,10 @@ import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
@@ -38,12 +41,13 @@ import com.squareup.picasso.Picasso;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 
 import de.hdodenhof.circleimageview.CircleImageView;
 
 import static android.content.Context.MODE_PRIVATE;
 
-public class FragChat extends Fragment {
+public class FragChat extends Fragment implements Toolbar.OnMenuItemClickListener {
 
     View view;
     RecyclerView chatList;
@@ -57,6 +61,9 @@ public class FragChat extends Fragment {
     String currentId;
     static SharedPreferences sharedPreferences;
     StorageReference mThumbImagesReference, mChatImageReference;
+    boolean selectionMode;
+    HashSet<String> selectionSet = new HashSet<>();
+    Toolbar actionToolbar;
 
     public FragChat() {
         // Required empty public constructor
@@ -95,6 +102,83 @@ public class FragChat extends Fragment {
         chatList.setLayoutManager(new LinearLayoutManager(getContext()));
         adapter = new ChatAdapter();
         chatList.setAdapter(adapter);
+        selectionMode = false;
+        actionToolbar = view.findViewById(R.id.toolbar_bottom_fragBookmark);
+        actionToolbar.inflateMenu(R.menu.menu_fragchat_list_selection);
+
+        actionToolbar.setOnMenuItemClickListener(this);
+        actionToolbar.setVisibility(View.GONE);
+
+    }
+
+    @Override
+    public boolean onMenuItemClick(MenuItem menuItem) {
+        switch (menuItem.getItemId()) {
+            case R.id.menu_fcLS_delete:
+                new DeleteChats().execute();
+                return true;
+        }
+        return false;
+    }
+
+    @SuppressLint("StaticFieldLeak")
+    class DeleteChats extends AsyncTask<Void, Integer, Void> {
+
+        ProgressDialog dialog;
+
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+            dialog = new ProgressDialog(view.getContext());
+            dialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
+            dialog.setProgress(0);
+            dialog.setTitle("Please Wait!!");
+            dialog.setMessage("Please wait while deleting messages...");
+            dialog.show();
+            dialog.setCancelable(false);
+        }
+
+        @Override
+        protected Void doInBackground(Void... voids) {
+
+            for (String id : selectionSet) {
+                Cursor cursor = chatDatabase.rawQuery("Select message_id,message_type from user_" + id, null, null);
+                if (cursor == null)
+                    continue;
+                if (cursor.getCount() > 0) {
+                    cursor.moveToFirst();
+                    do {
+                        String msgId = cursor.getString(0);
+                        String type = cursor.getString(1);
+                        chatDatabase.execSQL("delete from message_" + type + " where message_id='" + msgId + "'");
+                        if (cursor.isLast()) {
+                            sharedPreferences.edit().putString("user_" + id + "_message_id", msgId).apply();
+                        }
+                    } while (cursor.moveToNext());
+                    chatDatabase.execSQL("delete from user_" + id);
+                }
+                chatDatabase.execSQL("delete from user_list where user_id='" + id + "'");
+                cursor.close();
+            }
+
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(Void aVoid) {
+            super.onPostExecute(aVoid);
+            dialog.dismiss();
+            actionToolbar.setVisibility(View.GONE);
+            selectionSet.clear();
+            selectionMode = false;
+            new LoadChats().execute();
+        }
+
+        @Override
+        protected void onProgressUpdate(Integer... values) {
+            super.onProgressUpdate(values);
+
+        }
     }
 
     class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.ViewHolder> {
@@ -107,17 +191,17 @@ public class FragChat extends Fragment {
         @Override
         public void onBindViewHolder(@NonNull ViewHolder viewHolder, int i) {
 
-            UserHolder userHolder = chatHashMap.get(chatArrayList.get(i));
-            userHolder.lastMessage = getLastMessage(chatArrayList.get(i));
+            String id = chatArrayList.get(i);
+            UserHolder userHolder = chatHashMap.get(id);
+            userHolder.lastMessage = getLastMessage(id);
 
             viewHolder.tvLastMessage.setText(userHolder.lastMessage);
             viewHolder.tvName.setText(userHolder.name);
 
-            Log.i("CBLis last message", userHolder.lastMessage + "");
-            Log.i("CBLis count", userHolder.messageCount + "");
-
-            userHolder.messageCount = getLastUnreadMessageCount(chatArrayList.get(i));
-
+            if (selectionSet.contains(id) && selectionMode)
+                viewHolder.itemView.setBackgroundResource(R.drawable.drawable_list_selection_light_blue);
+            else viewHolder.itemView.setBackground(null);
+            userHolder.messageCount = getLastUnreadMessageCount(id);
 
             switch (userHolder.messageCount) {
                 case -1:
@@ -132,14 +216,14 @@ public class FragChat extends Fragment {
 
             boolean thumbImage = userHolder.pic.isEmpty();
             if (!thumbImage) {
-                String path = Environment.getExternalStorageDirectory() + "/ConnectBase/ProfilePics/thumbImage/" + chatArrayList.get(i) + ".jpg";
+                String path = Environment.getExternalStorageDirectory() + "/ConnectBase/ProfilePics/thumbImage/" + id + ".jpg";
                 File thumbFile = new File(path);
 
                 if (thumbFile.exists()) {
                     viewHolder.ivPic.setImageBitmap(BitmapFactory.decodeFile(path));
 
                 } else {
-                    mThumbImagesReference.child(chatArrayList.get(i) + ".jpg").getFile(thumbFile).addOnCompleteListener(task -> {
+                    mThumbImagesReference.child(id + ".jpg").getFile(thumbFile).addOnCompleteListener(task -> {
                         if (task.isSuccessful()) {
                             viewHolder.ivPic.setImageBitmap(BitmapFactory.decodeFile(path));
                         } else {
@@ -153,8 +237,33 @@ public class FragChat extends Fragment {
 
                 }
             } else viewHolder.ivPic.setImageResource(R.drawable.avatar);
-            viewHolder.itemView.setOnClickListener(v -> openChatActivity(i));
 
+            viewHolder.itemView.setOnClickListener(v -> {
+                if (!selectionMode)
+                    openChatActivity(i);
+                else {
+                    if (selectionSet.contains(id)) {
+                        selectionSet.remove(id);
+                        viewHolder.itemView.setBackground(null);
+                        if (selectionSet.size() == 0) {
+                            selectionMode = false;
+                            actionToolbar.setVisibility(View.GONE);
+                        }
+                    } else {
+                        selectionSet.add(id);
+                        viewHolder.itemView.setBackgroundResource(R.drawable.drawable_list_selection_light_blue);
+                    }
+                    actionToolbar.setTitle(selectionSet.size() + " Items Selected");
+                }
+            });
+            viewHolder.itemView.setOnLongClickListener(v -> {
+                selectionMode = true;
+                viewHolder.itemView.setBackgroundResource(R.drawable.drawable_list_selection_light_blue);
+                actionToolbar.setVisibility(View.VISIBLE);
+                selectionSet.add(id);
+                actionToolbar.setTitle(selectionSet.size() + " Items Selected");
+                return true;
+            });
 
         }
 
@@ -310,15 +419,12 @@ public class FragChat extends Fragment {
 
     @SuppressLint("StaticFieldLeak")
     private class LoadChats extends AsyncTask<Void, Void, Void> {
-        @Override
-        protected void onPreExecute() {
-            super.onPreExecute();
-        }
 
         @Override
         protected Void doInBackground(Void... voids) {
             chatArrayList.clear();
             chatHashMap.clear();
+            publishProgress();
 
             Cursor cursor = chatDatabase.rawQuery("select * from user_list", null, null);
 
@@ -458,7 +564,7 @@ public class FragChat extends Fragment {
                 if (sender.equals(currentId))
                     return;
 
-                String lastMessageId = sharedPreferences.getString("user" + sender + "message_id", "");
+                String lastMessageId = sharedPreferences.getString("user_" + sender + "_message_id", "");
                 if (lastMessageId.equals(msgId)) {
                     return;
                 }
@@ -505,8 +611,6 @@ public class FragChat extends Fragment {
             if (sender.equals(currentId))
                 return;
 
-            //TODO download thumbimage before adding to database;
-
             String msgId = dataSnapshot.getKey();
             if (dataSnapshot.hasChild("messageType")) {
                 String type = dataSnapshot.child("messageType").getValue().toString();
@@ -514,8 +618,19 @@ public class FragChat extends Fragment {
                 switch (type) {
                     case "image":
                         ChatImage chatImage = dataSnapshot.getValue(ChatImage.class);
-                        if (chatImage != null && !chatImage.getImageUrl().isEmpty() && !chatImage.getThumbImage().isEmpty())
-                            addMessageToDatabase(sender, type, msgId, chatImage);
+                        if (chatImage != null && !chatImage.getImageUrl().isEmpty() && !chatImage.getThumbImage().isEmpty()) {
+
+                            File thumbImageFile = new File(Environment.getExternalStorageDirectory() + "/ConnectBase/temp/thumbImage/" + msgId + ".jpg");
+
+                            mChatImageReference.child("ThumbImage").child(chatImage.getThumbImage()).getFile(thumbImageFile).addOnCompleteListener(task -> {
+                                if (task.isSuccessful()) {
+                                    addMessageToDatabase(sender, type, msgId, chatImage);
+                                    adapter.notifyDataSetChanged();
+                                }
+                            });
+
+                            //   addMessageToDatabase(sender, type, msgId, chatImage);
+                        }
                         break;
                     case "file":
                         ChatFile chatFile = dataSnapshot.getValue(ChatFile.class);
@@ -524,9 +639,8 @@ public class FragChat extends Fragment {
                         break;
                 }
                 adapter.notifyDataSetChanged();
+
             }
-
-
         }
 
         @Override

@@ -262,18 +262,16 @@ public class FragFriends extends Fragment {
 
     private void deleteFriend(String id) {
 
-        int val = userDatabase.delete("friends", "id=?", new String[]{id});
+        userDatabase.delete("friends", "id=?", new String[]{id});
         friendHashMap.remove(id);
         friendsArrayList.remove(id);
         adapter.notifyDataSetChanged();
-        Log.i("CBDel", val + "");
+
+
         FragChat.sharedPreferences.edit()
                 .remove("user_" + id + "_chat_id")
                 .remove("user_" + id + "_message_id")
                 .apply();
-
-
-        //TODO: delete shared preferences while removing friends
 
     }
 
