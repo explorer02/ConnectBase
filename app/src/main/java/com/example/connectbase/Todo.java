@@ -7,7 +7,7 @@ public class Todo {
     //TODO voip calls
     //TODO service for notifications
     //TODO chatlist element selection
-    //TODO context action mode
+    //TODO context action mode in chat activity
     //TODO home screen widget
     //TODO: Delete friend table after unfriend
     //TODO fix sound of sending and receiving messages while loading chats

@@ -9,6 +9,7 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteConstraintException;
 import android.database.sqlite.SQLiteDatabase;
 import android.graphics.BitmapFactory;
+import android.graphics.Typeface;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Environment;
@@ -64,6 +65,7 @@ public class FragChat extends Fragment implements Toolbar.OnMenuItemClickListene
     boolean selectionMode;
     HashSet<String> selectionSet = new HashSet<>();
     Toolbar actionToolbar;
+    CommonFunctions commonFunctions = new CommonFunctions();
 
     public FragChat() {
         // Required empty public constructor
@@ -193,9 +195,12 @@ public class FragChat extends Fragment implements Toolbar.OnMenuItemClickListene
 
             String id = chatArrayList.get(i);
             UserHolder userHolder = chatHashMap.get(id);
-            userHolder.lastMessage = getLastMessage(id);
+            LastMessage lastMessage = getLastMessage(id);
+            userHolder.lastMessage = lastMessage.message;
 
             viewHolder.tvLastMessage.setText(userHolder.lastMessage);
+            if (!lastMessage.time.isEmpty())
+                viewHolder.tvTime.setText(commonFunctions.convertTime(Long.parseLong(lastMessage.time), true));
             viewHolder.tvName.setText(userHolder.name);
 
             if (selectionSet.contains(id) && selectionMode)
@@ -208,9 +213,11 @@ public class FragChat extends Fragment implements Toolbar.OnMenuItemClickListene
                     break;
                 case 0:
                     viewHolder.btnMessageCount.setVisibility(View.INVISIBLE);
+                    viewHolder.tvLastMessage.setTypeface(Typeface.DEFAULT);
                     break;
                 default:
                     viewHolder.btnMessageCount.setVisibility(View.VISIBLE);
+                    viewHolder.tvLastMessage.setTypeface(Typeface.DEFAULT_BOLD);
                     viewHolder.btnMessageCount.setText(userHolder.messageCount + "");
             }
 
@@ -274,14 +281,15 @@ public class FragChat extends Fragment implements Toolbar.OnMenuItemClickListene
 
         class ViewHolder extends RecyclerView.ViewHolder {
 
-            TextView tvName, tvLastMessage;
+            TextView tvName, tvLastMessage, tvTime;
             CircleImageView ivPic;
             Button btnMessageCount;
 
             ViewHolder(@NonNull View itemView) {
                 super(itemView);
                 tvName = itemView.findViewById(R.id.tv_lRCFr_name);
-                tvLastMessage = itemView.findViewById(R.id.tv_lRCFr__position);
+                tvTime = itemView.findViewById(R.id.tv_lRCFr_time);
+                tvLastMessage = itemView.findViewById(R.id.tv_lRCFr_position);
                 ivPic = itemView.findViewById(R.id.iv_lRCFr_profilePic);
                 btnMessageCount = itemView.findViewById(R.id.btn_lRCFr_messageCount);
             }
@@ -331,9 +339,18 @@ public class FragChat extends Fragment implements Toolbar.OnMenuItemClickListene
         return user;
     }
 
-    private String getLastMessage(String id) {
+    public class LastMessage {
+        String message, time;
 
-        String lastMessage = "";
+        LastMessage(String message, String time) {
+            this.message = message;
+            this.time = time;
+        }
+    }
+
+    private LastMessage getLastMessage(String id) {
+
+        String lastMessage = "", time = "";
         try {
             Cursor cursor = chatDatabase.rawQuery("select * from user_" + id, null, null);
 
@@ -345,19 +362,23 @@ public class FragChat extends Fragment implements Toolbar.OnMenuItemClickListene
                 Cursor cursor1 = null;
                 switch (type) {
                     case "text":
-                        cursor1 = chatDatabase.rawQuery("select message from message_text where message_id='" + messageId + "'", null, null);
+                        cursor1 = chatDatabase.rawQuery("select message,time from message_text where message_id='" + messageId + "'", null, null);
                         cursor1.moveToFirst();
                         lastMessage = cursor1.getString(0);
+                        time = cursor1.getString(1);
+
                         break;
                     case "image":
-                        cursor1 = chatDatabase.rawQuery("select description from message_image where message_id='" + messageId + "'", null, null);
+                        cursor1 = chatDatabase.rawQuery("select description,time from message_image where message_id='" + messageId + "'", null, null);
                         cursor1.moveToFirst();
                         lastMessage = "(Image) " + cursor1.getString(0);
+                        time = cursor1.getString(1);
                         break;
                     case "file":
-                        cursor1 = chatDatabase.rawQuery("select description from message_file where message_id='" + messageId + "'", null, null);
+                        cursor1 = chatDatabase.rawQuery("select description,time from message_file where message_id='" + messageId + "'", null, null);
                         cursor1.moveToFirst();
                         lastMessage = "(File) " + cursor1.getString(0);
+                        time = cursor1.getString(1);
                         break;
                 }
                 if (cursor1 != null)
@@ -367,7 +388,7 @@ public class FragChat extends Fragment implements Toolbar.OnMenuItemClickListene
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return lastMessage;
+        return new LastMessage(lastMessage, time);
 
     }
 
@@ -737,17 +758,13 @@ public class FragChat extends Fragment implements Toolbar.OnMenuItemClickListene
         for (Query query : referenceArrayList) {
             query.removeEventListener(chatEventListener);
         }
-
     }
 
     private void addUserToDatabase(String id) {
-
         try {
             chatDatabase.execSQL("insert into user_list values('" + id + "')");
         } catch (SQLiteConstraintException e) {
             e.printStackTrace();
         }
     }
-
-
 }

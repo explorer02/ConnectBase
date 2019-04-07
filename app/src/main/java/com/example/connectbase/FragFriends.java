@@ -16,7 +16,6 @@ import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.text.Editable;
 import android.text.TextWatcher;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -99,7 +98,6 @@ public class FragFriends extends Fragment {
     ValueEventListener valueEventListener = new ValueEventListener() {
         @Override
         public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-            Log.i("CBVEL", dataSnapshot.toString());
             String id = dataSnapshot.getKey();
             Users friend = dataSnapshot.getValue(Users.class);
 
@@ -293,7 +291,6 @@ public class FragFriends extends Fragment {
     @Override
     public void onActivityCreated(@Nullable Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
-        Log.i("CalledOnFriend", " On ActivityCreated");
         mFriendsReference.addChildEventListener(childEventListener);
         checkFriends();
 
@@ -336,7 +333,6 @@ public class FragFriends extends Fragment {
         ValueEventListener listener = new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                Log.i("CBvel", dataSnapshot.toString());
                 Iterable<DataSnapshot> children = dataSnapshot.getChildren();
                 for (DataSnapshot child : children) {
                     int index = friendsArrayList.indexOf(child.getKey());

@@ -39,7 +39,7 @@
                 android:textSize="18sp" />
 
             <TextView
-                android:id="@+id/tv_lRCFr__position"
+                android:id="@+id/tv_lRCFr_position"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="5dp"
@@ -47,6 +47,16 @@
                 android:maxLines="1"
                 android:textSize="15sp" />
         </LinearLayout>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:textSize="14sp"
+            android:layout_marginStart="-50dp"
+            android:id="@+id/tv_lRCFr_time"
+            android:gravity="center_vertical"
+            android:layout_weight="0"
+            android:text="" />
 
         <Button
             android:id="@+id/btn_lRCFr_messageCount"
@@ -57,7 +67,7 @@
             android:textColor="@color/colorWhite"
             android:text="12"
             android:layout_height="27dp"
-            android:layout_marginStart="-50dp"
+            android:layout_marginStart="10dp"
             android:layout_marginEnd="5dp"
             android:layout_weight="0"
             android:visibility="invisible" />

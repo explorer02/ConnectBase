@@ -7,16 +7,16 @@
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.VIBRATE" />
 
-
     <application
+        android:name=".ApplicationClass"
         android:allowBackup="true"
         android:icon="@drawable/app_icon"
         android:label="@string/app_name"
-        android:name=".ApplicationClass"
         android:roundIcon="@drawable/app_icon"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-        <activity android:name=".ViewFilesActivity"></activity>
+        <activity android:name=".ForwardActivity"></activity>
+        <activity android:name=".ViewFilesActivity" />
         <activity android:name=".ViewImagesActivity" />
         <activity android:name=".ImageEditingActivity" />
 

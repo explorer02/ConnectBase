@@ -1844,6 +1844,11 @@ public class ChatActivity extends AppCompatActivity {
                                 return true;
 
                             case R.id.menu_pCM_forward:
+                                if (commonFunctions.checkInternetConnection(ChatActivity.this)) {
+                                    startActivity(new Intent(ChatActivity.this, ForwardActivity.class));
+                                } else {
+                                    Snackbar.make(chatList, "No Internet Connection", Snackbar.LENGTH_SHORT).show();
+                                }
                                 return true;
                             case R.id.menu_pCM_info:
                                 showMessageInfoDialog(0, chatMessage, null);
