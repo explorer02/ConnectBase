@@ -34,7 +34,7 @@ public class MainActivity extends AppCompatActivity implements FragInviteRequest
         mAuth = FirebaseAuth.getInstance();
         Toolbar toolbar = findViewById(R.id.toolbar_main);
         setSupportActionBar(toolbar);
-        getSupportActionBar().setTitle("Connect Base");
+        getSupportActionBar().setTitle("Quick Chat");
 
         viewPager = findViewById(R.id.viewPager_main);
         viewPagerAdapter = new ViewPagerAdapterMain(getSupportFragmentManager());
